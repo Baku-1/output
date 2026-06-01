@@ -21,7 +21,6 @@ import {
   requestWaypointConnector,
 } from '@sky-mavis/tanto-connect'
 
-const WAYPOINT_CLIENT_ID  = import.meta.env.VITE_WAYPOINT_CLIENT_ID
 const RONIN_PROJECT_ID    = import.meta.env.VITE_RONIN_PROJECT_ID
 
 // ── Internal state ────────────────────────────────────────────
@@ -98,6 +97,7 @@ export function connectRoninMobile() {
   const wcPromise = requestRoninWalletConnectConnector({
     providerOptions: {
       projectId: RONIN_PROJECT_ID,
+      chains: [ChainIds.RoninMainnet],
       metadata: {
         name: 'The Outlet',
         description: 'WebZone 001',
@@ -111,11 +111,13 @@ export function connectRoninMobile() {
 
 export function connectWaypoint() {
   console.log('[WALLET] connectWaypoint() entered')
-  const wpPromise = requestWaypointConnector({
-    clientId: WAYPOINT_CLIENT_ID,
-    chainId: ChainIds.RoninMainnet
+  const wpConnector = requestWaypointConnector({
+    providerConfigs: {
+      clientId: RONIN_PROJECT_ID,
+      chainId: ChainIds.RoninMainnet
+    }
   })
-  return _doConnect(wpPromise)
+  return _doConnect(Promise.resolve(wpConnector))
 }
 
 export function getAddress() {
