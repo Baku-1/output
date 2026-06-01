@@ -21,7 +21,8 @@ import {
   requestWaypointConnector,
 } from '@sky-mavis/tanto-connect'
 
-const WAYPOINT_CLIENT_ID = import.meta.env.VITE_WAYPOINT_CLIENT_ID
+const WAYPOINT_CLIENT_ID  = import.meta.env.VITE_WAYPOINT_CLIENT_ID
+const RONIN_PROJECT_ID    = import.meta.env.VITE_RONIN_PROJECT_ID
 
 // ── Internal state ────────────────────────────────────────────
 let _activeConnector = null
@@ -96,7 +97,7 @@ export function connectRoninMobile() {
   console.log('[WALLET] connectRoninMobile() entered')
   const wcPromise = requestRoninWalletConnectConnector({
     providerOptions: {
-      projectId: WAYPOINT_CLIENT_ID, // Use the provided API key as fallback Project ID just in case
+      projectId: RONIN_PROJECT_ID,
       metadata: {
         name: 'The Outlet',
         description: 'WebZone 001',

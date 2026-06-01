@@ -55,7 +55,8 @@ export const AVATAR_CACHE_TTL = 7 * 24 * 60 * 60 * 1000
 
 // ── IPFS Gateway fallback chain ────────────────────────────────
 export const IPFS_GATEWAYS = [
-  'https://nftstorage.link/ipfs/',
-  'https://cloudflare-ipfs.com/ipfs/',
   'https://ipfs.io/ipfs/',
+  'https://dweb.link/ipfs/',
+  'https://nftstorage.link/ipfs/',
+  'https://4everland.io/ipfs/',
 ]
