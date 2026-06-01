@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Outlet — WebZone 001</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+
+<!-- SPLASH / WALLET CONNECT -->
+<div id="splash">
+  <div class="sp-eye">WebZone 001</div>
+  <div class="sp-logo">THE <em>OUTLET</em></div>
+  <div class="sp-sub">Game Mall · Digital Experience</div>
+  <div class="sp-line"></div>
+  <div id="wallet-disconnected">
+    <button class="sp-btn" id="connect-btn">CONNECT RONIN WALLET</button>
+    <p class="sp-hint">Requires Ronin Wallet extension</p>
+  </div>
+  <div id="wallet-connecting" style="display:none">
+    <div class="sp-btn" style="opacity:.5;cursor:default">CONNECTING…</div>
+  </div>
+  <div id="wallet-connected" style="display:none">
+    <div class="wallet-addr" id="wallet-addr">0x…</div>
+    <button class="sp-btn" id="enter-btn">ENTER THE OUTLET</button>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hl">THE <em>OUTLET</em></div>
+  <div class="hm">Game Mall · WebZone 001</div>
+  <div class="hr">
+    <span id="player-count">● 1 online</span>
+    <div class="ldot"></div><span id="hz">LOBBY</span>
+  </div>
+</div>
+<div id="zone-lbl"></div>
+
+<!-- AVATAR PICKER -->
+<div id="avatar-picker" style="display:none">
+  <div class="ap-panel">
+    <div class="ap-header">
+      <div class="ap-title">CHOOSE YOUR AVATAR</div>
+      <div class="ap-hint">Select an NFT from your Ronin wallet</div>
+    </div>
+    <div class="ap-body"></div>
+    <div class="ap-footer">
+      <button id="ap-more" class="ap-more-btn" style="display:none">Load more NFTs</button>
+      <button id="ap-skip" class="ap-skip-btn">Skip — use random avatar</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME CANVAS -->
+<canvas id="c"></canvas>
+
+<!-- STORE POSTER OVERLAYS — HTML containers for key art, positioned over canvas -->
+<div id="store-overlays"></div>
+
+<!-- MINIMAP -->
+<div id="mm"><canvas id="mc" width="130" height="130"></canvas></div>
+
+<!-- PROXIMITY TOAST -->
+<div id="toast"><span class="tk">F</span> Enter <strong id="tn">—</strong></div>
+
+<!-- EVENT FEED (store entry notifications from other players) -->
+<div id="event-feed"></div>
+
+<!-- STORE PANEL -->
+<div id="sp">
+  <div class="spc" id="spc">
+    <div class="sp-bar"></div>
+    <div class="sp-hd">
+      <div>
+        <div class="sp-nm" id="sn">—</div>
+        <div class="sp-tags" id="stags"></div>
+      </div>
+      <button class="sp-x" id="spx">✕</button>
+    </div>
+    <div class="sp-pv">
+      <img id="sp-banner-img" src="" alt="" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;object-position:center;">
+      <div class="sp-pv-bg" id="spbg">—</div>
+      <div class="sp-pv-lb">Game Preview</div>
+      <div class="sp-pv-li">● LIVE</div>
+    </div>
+    <div class="sp-bd">
+      <p class="sp-dc" id="sdesc">—</p>
+      <div class="sp-st">
+        <div class="sst"><div class="sst-l">Chain</div><div class="sst-v" id="schain">—</div></div>
+        <div class="sst"><div class="sst-l">Players</div><div class="sst-v" id="spl">—</div></div>
+        <div class="sst"><div class="sst-l">Entry Cost</div><div class="sst-v" id="scost">—</div></div>
+      </div>
+      <a id="scta" href="#" target="_blank" class="sp-cta">ENTER GAME →</a>
+    </div>
+  </div>
+</div>
+
+<!-- REBO NPC DIALOGUE PANEL -->
+<div id="npc-dialogue">
+  <div class="npc-hd">
+    <div class="npc-avatar">R</div>
+    <div>
+      <div class="npc-name" id="npc-name">Rebo</div>
+      <div class="npc-title" id="npc-title">Mall Security · The Outlet</div>
+    </div>
+    <button class="sp-x" onclick="document.getElementById('npc-dialogue').classList.remove('on')">✕</button>
+  </div>
+  <div class="gmsgs" id="npc-msgs"></div>
+  <div class="gir">
+    <input class="gi" id="npc-input" placeholder="Talk to Rebo…" />
+    <button class="gs" id="npc-send">→</button>
+  </div>
+</div>
+
+<!-- AI GUIDE (deferred — post-beta) -->
+<div id="guide">
+  <div class="gh">
+    <div class="gt">THE OUTLET · GUIDE</div>
+    <div class="go"><div class="gd"></div>ONLINE</div>
+  </div>
+  <div class="gmsgs" id="gmsgs">
+    <div class="gm bot">Welcome to <strong>The Outlet</strong>. Walk north through the main hall to the Food Court. Three wings branch off: <strong>Battle</strong>, <strong>RPG</strong>, and <strong>Strategy</strong>. Press <strong>F</strong> near a storefront to enter.</div>
+  </div>
+  <div class="gir">
+    <input class="gi" id="gi" placeholder="Ask your guide…" />
+    <button class="gs" id="gsend">→</button>
+  </div>
+</div>
+
+<!-- CONTROLS LEGEND -->
+<div id="ctrl">
+  <span class="ck">W / S</span> Forward / Back<br>
+  <span class="ck">A / D</span> Strafe<br>
+  <span class="ck">Q / E</span> Turn &nbsp;<span class="ck">Mouse</span> Look<br>
+  <span class="ck">F</span> Enter store &nbsp;<span class="ck">Esc</span> Close
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
