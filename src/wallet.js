@@ -3,10 +3,12 @@
 // The Outlet — WebZone 001
 //
 // Exports expected by main.js:
-//   connectRonin()        → Promise<address string>   (throws on failure)
-//   getAddress()          → string | null
-//   shortAddress(addr)    → string
-//   onAccountChange(cb)   → void  cb receives { address, isConnected }
+//   connectRoninExtension() → Promise<address string>
+//   connectRoninMobile()    → Promise<address string>
+//   connectWaypoint()       → Promise<address string>
+//   getAddress()            → string | null
+//   shortAddress(addr)      → string
+//   onAccountChange(cb)     → void  cb receives { address, isConnected }
 // ═══════════════════════════════════════════════════════════════
 
 import {
@@ -15,21 +17,20 @@ import {
   ConnectorErrorType,
   ConnectorEvent,
   requestRoninWalletConnector,
+  requestRoninWalletConnectConnector,
+  requestWaypointConnector,
 } from '@sky-mavis/tanto-connect'
 
+const WAYPOINT_CLIENT_ID = import.meta.env.VITE_WAYPOINT_CLIENT_ID
+
 // ── Internal state ────────────────────────────────────────────
-let _connector  = null   // set once on first connectRonin() call
-let _address    = null   // current connected address
-let _accountCbs = []     // onAccountChange listeners
+let _activeConnector = null
+let _address = null
+let _accountCbs = []
 
-// Eagerly start connector discovery at module load.
-// requestRoninWalletConnector() waits ~700 ms for EIP-6963 announcements.
-// Doing it here (not inside the click handler) preserves the user-gesture
-// context so the wallet popup is allowed to open.
-const _connectorPromise = requestRoninWalletConnector()
-_connectorPromise.catch(() => {})  // silence unhandled rejection if ext missing
-
-// ── Helpers ───────────────────────────────────────────────────
+// Eagerly start extension connector discovery
+const _extConnectorPromise = requestRoninWalletConnector()
+_extConnectorPromise.catch(() => {})
 
 function _notifyListeners(address) {
   const payload = { address, isConnected: !!address }
@@ -37,6 +38,12 @@ function _notifyListeners(address) {
 }
 
 function _wireEvents(connector) {
+  if (_activeConnector && _activeConnector !== connector) {
+    _activeConnector.removeAllListeners?.(ConnectorEvent.ACCOUNTS_CHANGED)
+    _activeConnector.removeAllListeners?.(ConnectorEvent.DISCONNECT)
+  }
+  _activeConnector = connector
+
   connector.on(ConnectorEvent.ACCOUNTS_CHANGED, accounts => {
     _address = accounts?.[0] ?? null
     _notifyListeners(_address)
@@ -47,88 +54,78 @@ function _wireEvents(connector) {
   })
 }
 
-// ── Public API ────────────────────────────────────────────────
-
-/**
- * Connect to Ronin Wallet.
- * - If the site is already authorised, autoConnect() returns the address instantly.
- * - Otherwise connect() triggers the approval popup.
- * Returns the connected address string, or throws a human-readable Error.
- */
-export async function connectRonin() {
-  console.log('[WALLET] connectRonin() entered')
-
-  // Await the eagerly-started promise (already settled → microtask cost only).
+async function _doConnect(connectorPromise, chainId = ChainIds.RoninMainnet) {
   let connector
   try {
-    connector = await _connectorPromise
-    console.log('[WALLET] connector resolved:', connector)
+    connector = await connectorPromise
   } catch (err) {
-    console.error('[WALLET] _connectorPromise rejected:', err)
-    if (err instanceof ConnectorError &&
-        err.name === ConnectorErrorType.PROVIDER_NOT_FOUND) {
-      throw new Error(
-        'Ronin Wallet extension not found. ' +
-        'Install it at https://wallet.roninchain.com and reload.'
-      )
+    if (err instanceof ConnectorError && err.name === ConnectorErrorType.PROVIDER_NOT_FOUND) {
+      throw new Error('Ronin Wallet extension not found. Install it at https://wallet.roninchain.com')
     }
-    throw new Error(err?.message || 'Could not reach Ronin Wallet.')
+    throw new Error(err?.message || 'Could not initialize wallet connector.')
   }
 
-  // Wire events the first time we get a connector reference.
-  if (!_connector) {
-    _connector = connector
-    _wireEvents(connector)
-  }
+  _wireEvents(connector)
 
-  // Try silent reconnect first (already approved session).
   let result
   try {
     result = await connector.autoConnect()
-    console.log('[WALLET] autoConnect() result:', result)
   } catch (err) {
-    console.warn('[WALLET] autoConnect() threw (swallowing):', err)
     result = null
   }
 
-  // Fall back to the full approval flow.
   if (!result) {
-    console.log('[WALLET] autoConnect returned falsy — calling connect()')
     try {
-      result = await connector.connect(ChainIds.RoninMainnet)
-      console.log('[WALLET] connect() result:', result)
+      result = await connector.connect(chainId)
     } catch (err) {
-      console.error('[WALLET] connect() threw:', err)
       throw new Error(err?.message || 'Connection cancelled or failed.')
     }
   }
 
-  console.log('[WALLET] result.account:', result?.account)
   if (!result?.account) throw new Error('No account returned from wallet.')
-
   _address = result.account
   return _address
 }
 
-/**
- * Returns the currently connected address, or null.
- */
+export function connectRoninExtension() {
+  console.log('[WALLET] connectRoninExtension() entered')
+  return _doConnect(_extConnectorPromise)
+}
+
+export function connectRoninMobile() {
+  console.log('[WALLET] connectRoninMobile() entered')
+  const wcPromise = requestRoninWalletConnectConnector({
+    providerOptions: {
+      projectId: WAYPOINT_CLIENT_ID, // Use the provided API key as fallback Project ID just in case
+      metadata: {
+        name: 'The Outlet',
+        description: 'WebZone 001',
+        url: window.location.origin,
+        icons: [window.location.origin + '/favicon.png']
+      }
+    }
+  })
+  return _doConnect(wcPromise)
+}
+
+export function connectWaypoint() {
+  console.log('[WALLET] connectWaypoint() entered')
+  const wpPromise = requestWaypointConnector({
+    clientId: WAYPOINT_CLIENT_ID,
+    chainId: ChainIds.RoninMainnet
+  })
+  return _doConnect(wpPromise)
+}
+
 export function getAddress() {
   return _address
 }
 
-/**
- * Formats a full address for compact display: 0x1234…abcd
- */
 export function shortAddress(addr) {
   if (!addr) return '—'
   return addr.slice(0, 6) + '…' + addr.slice(-4)
 }
 
-/**
- * Register a listener for account / connection changes.
- * The callback receives { address: string|null, isConnected: boolean }.
- */
 export function onAccountChange(cb) {
   _accountCbs.push(cb)
 }

@@ -7,22 +7,22 @@ export const ZONE_NAME        = 'The Outlet'
 export const ZONE_TAGLINE     = 'WebZone 001 · Game Mall'
 
 // ── Supabase (Realtime broadcast — ephemeral, no DB writes) ───
-export const SUPABASE_URL     = 'https://ghukqgfcqiichjqrjkfe.supabase.co'
-export const SUPABASE_ANON    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdodWtxZ2ZjcWlpY2hqcXJqa2ZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwODgwOTIsImV4cCI6MjA5NDY2NDA5Mn0.RO6R-5lMMEuZC3yn6AqjVsPGBZ7BKEOX1lHCgijwtFI'
+export const SUPABASE_URL     = import.meta.env.VITE_SUPABASE_URL
+export const SUPABASE_ANON    = import.meta.env.VITE_SUPABASE_ANON_KEY
 export const REALTIME_CHANNEL = 'outlet-mall-v1'
 
 // ── Ronin Chain ────────────────────────────────────────────────
 export const RONIN_CHAIN_ID   = 2020          // mainnet (2021 = Saigon testnet)
-export const RONIN_RPC        = 'https://api-gateway.skymavis.com/rpc?apikey=izngMC7FtsqBeYRV4buRlySilTqMW7EV'
+export const SKY_MAVIS_API_KEY = import.meta.env.VITE_SKY_MAVIS_API_KEY
+export const RONIN_RPC        = `https://api-gateway.skymavis.com/rpc?apikey=${SKY_MAVIS_API_KEY}`
 
 // ── Sky Mavis API ──────────────────────────────────────────────
-export const SKY_MAVIS_API_KEY = 'izngMC7FtsqBeYRV4buRlySilTqMW7EV'
 export const MAVIS_NFT_API    = 'https://api-gateway.skymavis.com/v2/collections'
 
 // ── Moralis (NFT data — Ronin chain) ──────────────────────────
 // Free-tier key. Treat as semi-public (client-side dApp).
 // Rotate at https://admin.moralis.io if compromised.
-export const MORALIS_API_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjZkM2IwODc1LWQxNGEtNGQyMC1hNDc3LWFmMTg2Yzg1NWQ4MCIsIm9yZ0lkIjoiNDQyMDMxIiwidXNlcklkIjoiNDU0Nzc4IiwidHlwZUlkIjoiZGI2OTFjYmEtZGVmMC00NWNkLTk0YTUtNTI4YzIxYmQ4NGIwIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3NDQ3NjM0NzEsImV4cCI6NDkwMDUyMzQ3MX0.bGYw7CkWQRaQcMH11tn19-P-_OeLVQPGxAFuZqyyyxM'
+export const MORALIS_API_KEY  = import.meta.env.VITE_MORALIS_API_KEY
 export const MORALIS_CHAIN    = '0x7e4'   // Ronin mainnet chain ID in hex
 
 // ── Anthropic AI Guide ─────────────────────────────────────────

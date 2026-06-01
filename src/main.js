@@ -7,7 +7,7 @@ import { showAvatarPicker, setupPickerSkip } from './avatarPicker.js'
 import { initMultiplayer, broadcastPosition, interpolatePlayers, remoteCache, onStoreEntry, broadcastStoreEntry } from './multiplayer.js'
 import { initRenderer, renderFrame, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
-import { connectRonin, shortAddress, onAccountChange } from './wallet.js'
+import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
 import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, getZone } from './map.js'
 import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE } from './config.js'
 
@@ -32,15 +32,14 @@ initRenderer(canvas)
 // ═══════════════════════════════════════════════════════════════
 // WALLET CONNECT UI
 // ═══════════════════════════════════════════════════════════════
-document.getElementById('connect-btn').addEventListener('click', async () => {
+async function handleConnect(connectFn) {
   document.getElementById('wallet-disconnected').style.display = 'none'
   document.getElementById('wallet-connecting').style.display   = 'block'
 
   try {
-    const address = await connectRonin()
+    const address = await connectFn()
     document.getElementById('wallet-connecting').style.display = 'none'
-    console.log('[MAIN] connectRonin() resolved with address:', address)
-    // Show avatar picker first — picker resolves then reveals ENTER button
+    console.log('[MAIN] wallet connected with address:', address)
     console.log('[MAIN] calling showPickerThenEnter()')
     showPickerThenEnter(address)
   } catch (err) {
@@ -48,7 +47,11 @@ document.getElementById('connect-btn').addEventListener('click', async () => {
     document.getElementById('wallet-disconnected').style.display= 'block'
     alert(err.message)
   }
-})
+}
+
+document.getElementById('connect-ext-btn').addEventListener('click', () => handleConnect(connectRoninExtension))
+document.getElementById('connect-mob-btn').addEventListener('click', () => handleConnect(connectRoninMobile))
+document.getElementById('connect-wp-btn').addEventListener('click', () => handleConnect(connectWaypoint))
 
 // Watch for wallet changes (network switch, disconnect)
 onAccountChange(({ address, isConnected }) => {
