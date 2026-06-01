@@ -141,13 +141,15 @@ export function makeProceduralAvatar(address) {
 // Checks cache first, then fetches the image URL stored in
 // sessionStorage (set by avatarPicker on selection).
 // Calls cb(texture) when ready.
-export async function loadPlayerAvatar(address, cb) {
-  // 1. Try IndexedDB cache
-  const cached = await avatarCache.get(address)
-  if (cached) return cb(cached)
+export async function loadPlayerAvatar(address, cb, imageUrl = null) {
+  // 1. IndexedDB cache — local player only (remote URL may differ from cached bake)
+  if (!imageUrl) {
+    const cached = await avatarCache.get(address)
+    if (cached) return cb(cached)
+  }
 
-  // 2. Try stored image URL (set by avatarPicker)
-  const storedUrl = sessionStorage.getItem(`avatar-url:${address}`)
+  // 2. Image URL: explicit (remote broadcast) or local sessionStorage (picker)
+  const storedUrl = imageUrl ?? sessionStorage.getItem(`avatar-url:${address}`)
   if (storedUrl) {
     const img = await loadNFTImage(storedUrl)
     const tex = await avatarCache.set(address, img)

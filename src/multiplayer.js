@@ -45,6 +45,17 @@ function hslToRgb(h, s, l) {
   return [Math.round(ch(h+1/3)*255), Math.round(ch(h)*255), Math.round(ch(h-1/3)*255)]
 }
 
+function _myAvatarUrl() {
+  if (!myId) return null
+  return sessionStorage.getItem(`avatar-url:${myId}`)
+}
+
+function _loadRemoteAvatar(id, avatarUrl) {
+  loadPlayerAvatar(id, tex => {
+    if (remoteCache[id]) remoteCache[id].texture = tex
+  }, avatarUrl)
+}
+
 // ── Init ──────────────────────────────────────────────────────
 
 export function initMultiplayer(walletAddress) {
@@ -71,15 +82,14 @@ export function initMultiplayer(walletAddress) {
           targetY: payload.y,
           dirX:    payload.dx,
           dirY:    payload.dy,
-          color:   idToColor(id),
-          texture: null,
-          lastSeen: now,
+          color:     idToColor(id),
+          avatarUrl: payload.avatarUrl || null,
+          texture:   null,
+          lastSeen:  now,
         }
         // Kick off avatar load in the background
         // When it resolves, inject the 64×64 ImageData into the cache entry
-        loadPlayerAvatar(id, (addr, imgData) => {
-          if (remoteCache[addr]) remoteCache[addr].texture = imgData
-        })
+        _loadRemoteAvatar(id, payload.avatarUrl)
       } else {
         // Subsequent packets — update target only, lerp handles movement
         remoteCache[id].targetX  = payload.x
@@ -87,6 +97,11 @@ export function initMultiplayer(walletAddress) {
         remoteCache[id].dirX     = payload.dx
         remoteCache[id].dirY     = payload.dy
         remoteCache[id].lastSeen = now
+        if (payload.avatarUrl && payload.avatarUrl !== remoteCache[id].avatarUrl) {
+          remoteCache[id].avatarUrl = payload.avatarUrl
+          remoteCache[id].texture   = null
+          _loadRemoteAvatar(id, payload.avatarUrl)
+        }
       }
 
       updatePlayerCount()
@@ -139,7 +154,7 @@ export function broadcastPosition(posX, posY, dirX, dirY) {
   sbChannel.send({
     type:    'broadcast',
     event:   'pos',
-    payload: { id: myId, x: posX, y: posY, dx: dirX, dy: dirY },
+    payload: { id: myId, x: posX, y: posY, dx: dirX, dy: dirY, avatarUrl: _myAvatarUrl() },
   })
 }
 

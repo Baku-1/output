@@ -401,7 +401,7 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache) {
           const tx2=Math.min(AVATAR_TEX_SIZE-1,Math.floor(texU*AVATAR_TEX_SIZE))
           const ty2=Math.min(AVATAR_TEX_SIZE-1,Math.floor(texV*AVATAR_TEX_SIZE))
           const ti=(ty2*AVATAR_TEX_SIZE+tx2)*4
-          const td=sp.texture.data
+          const td=sp.texture
           pixels[idx]  =Math.max(0,Math.min(255,Math.round(td[ti]  *fog*rimLight)))
           pixels[idx+1]=Math.max(0,Math.min(255,Math.round(td[ti+1]*fog*rimLight)))
           pixels[idx+2]=Math.max(0,Math.min(255,Math.round(td[ti+2]*fog*rimLight)))
