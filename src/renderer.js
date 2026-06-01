@@ -402,9 +402,12 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache) {
           const ty2=Math.min(AVATAR_TEX_SIZE-1,Math.floor(texV*AVATAR_TEX_SIZE))
           const ti=(ty2*AVATAR_TEX_SIZE+tx2)*4
           const td=sp.texture
-          pixels[idx]  =Math.max(0,Math.min(255,Math.round(td[ti]  *fog*rimLight)))
-          pixels[idx+1]=Math.max(0,Math.min(255,Math.round(td[ti+1]*fog*rimLight)))
-          pixels[idx+2]=Math.max(0,Math.min(255,Math.round(td[ti+2]*fog*rimLight)))
+          const a = td[ti+3]
+          if (a < 20) continue   // transparent pixel — show world behind
+          const mul = fog * rimLight * (a / 255)
+          pixels[idx]  =Math.max(0,Math.min(255,Math.round(td[ti]  *mul)))
+          pixels[idx+1]=Math.max(0,Math.min(255,Math.round(td[ti+1]*mul)))
+          pixels[idx+2]=Math.max(0,Math.min(255,Math.round(td[ti+2]*mul)))
           pixels[idx+3]=255
         } else {
           const isHead = texV<0.18, isBand = texV>0.35&&texV<0.55

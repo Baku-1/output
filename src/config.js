@@ -48,7 +48,7 @@ export const MAX_PLAYERS      = 32
 
 // ── Avatar cache (IndexedDB) ───────────────────────────────────
 export const IDB_DB_NAME      = 'TheOutlet'
-export const IDB_DB_VERSION   = 1
+export const IDB_DB_VERSION   = 4
 export const IDB_STORE_NAME   = 'avatars'
 export const AVATAR_TEX_SIZE  = 64
 export const AVATAR_CACHE_TTL = 7 * 24 * 60 * 60 * 1000

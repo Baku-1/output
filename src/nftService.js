@@ -24,6 +24,13 @@ export const IPFS_GATEWAYS = [
 ]
 const GATEWAY_TIMEOUT = 5000   // ms per gateway attempt
 
+// Ronin / Ethereum Axie ERC-721 contracts (lowercase)
+const AXIE_CONTRACTS = new Set([
+  '0x32950db2a7164ae8331216b7f7fbeadbe63a80ce', // Axie (Ronin)
+  '0x97a910714b34c10f9f7b7500f4ef9d8cddd2e0e', // legacy Ronin Axie
+  '0xf5b0a3efb8e8e4c201e2a935f110eaaf3ffecb8d', // Ethereum Axie
+])
+
 // -- Fetch one page of NFTs ------------------------------------------
 export async function fetchWalletNFTs(address, cursor = null) {
   const params = new URLSearchParams({
@@ -53,7 +60,32 @@ export async function fetchWalletNFTs(address, cursor = null) {
 // -- Resolve an image URL to a loaded HTMLImageElement ---------------
 // Tries IPFS gateway fallback chain for IPFS/Pinata URLs.
 // Returns the image on success, null if all attempts fail.
-export async function loadNFTImage(url) {
+// Best image URL for avatar baking. Axies get Sky Mavis transparent PNGs.
+export function resolveAvatarImageUrl(nft) {
+  if (!nft) return null
+  const id = _extractAxieId(nft)
+  if (id && _isAxieNFT(nft)) {
+    return `https://axiecdn.axieinfinity.com/axies/${id}/axie/axie-full-transparent.png`
+  }
+  return _preferAxieTransparentUrl(nft.imageUrl)
+}
+
+export async function loadNFTImage(url, nft = null) {
+  const candidates = []
+  const add = u => { if (u && !candidates.includes(u)) candidates.push(u) }
+
+  if (nft) add(resolveAvatarImageUrl(nft))
+  add(_preferAxieTransparentUrl(url))
+  add(url)
+
+  for (const u of candidates) {
+    const img = await _loadOneUrl(u)
+    if (img) return img
+  }
+  return null
+}
+
+async function _loadOneUrl(url) {
   if (!url) return null
   const cid = _extractCID(url)
   if (cid) {
@@ -104,6 +136,28 @@ function _tryLoadImage(httpUrl, timeoutMs, crossOrigin = false) {
 // Extract the IPFS CID (+ optional path) from any IPFS-flavoured URL:
 //   ipfs://CID/path          -> "CID/path"
 //   https://*/ipfs/CID/path  -> "CID/path"  (covers cloudflare, Pinata, ipfs.io ...)
+function _isAxieNFT(nft) {
+  const c = (nft.contractAddress || '').toLowerCase()
+  const name = (nft.collectionName || '').toLowerCase()
+  const img = (nft.imageUrl || '').toLowerCase()
+  return AXIE_CONTRACTS.has(c) || name.includes('axie') || img.includes('axiecdn.axieinfinity.com')
+}
+
+function _extractAxieId(nft) {
+  const tid = String(nft.tokenId ?? '')
+  if (/^\d+$/.test(tid)) return tid
+  const m = (nft.imageUrl || '').match(/axies\/(\d+)\//i)
+  return m ? m[1] : null
+}
+
+function _preferAxieTransparentUrl(url) {
+  if (!url) return null
+  if (!url.includes('axiecdn.axieinfinity.com')) return url
+  if (url.includes('transparent')) return url
+  return url
+    .replace(/axie-full(?:-portrait)?\.(?:png|jpg|jpeg|webp)/i, 'axie-full-transparent.png')
+}
+
 function _extractCID(url) {
   if (!url) return null
   if (url.startsWith('ipfs://')) return url.slice(7)
@@ -128,7 +182,7 @@ function _normalise(raw) {
     raw.media?.media_collection?.high?.url ||
     imageUrl
 
-  return {
+  const nft = {
     id:             `${raw.token_address}:${raw.token_id}`,
     tokenId:        raw.token_id,
     contractAddress:raw.token_address,
@@ -139,6 +193,9 @@ function _normalise(raw) {
     thumbnailUrl,
     attributes:     nm.attributes || raw_meta?.attributes || [],
   }
+  const avatarUrl = resolveAvatarImageUrl(nft)
+  if (avatarUrl) nft.imageUrl = avatarUrl
+  return nft
 }
 
 function _tryParse(str) {

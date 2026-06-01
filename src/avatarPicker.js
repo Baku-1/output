@@ -16,7 +16,7 @@
 //   If that also fails, makeProceduralAvatar() is used instead.
 // ═══════════════════════════════════════════════════════════════
 
-import { fetchWalletNFTs, resolveImageUrl } from './nftService.js'
+import { fetchWalletNFTs, resolveImageUrl, resolveAvatarImageUrl } from './nftService.js'
 import { avatarCache, makeProceduralAvatar } from './avatarCache.js'
 
 // SVG silhouette shown when every gateway fails for a given NFT thumbnail.
@@ -142,9 +142,10 @@ function _makeCard(nft, address, resolve) {
 // ── Handle selection ──────────────────────────────────────────
 async function _select(nft, address, resolve) {
   console.log('[PICKER] _select() entered — nft:', nft.name, '| imageUrl:', nft.imageUrl)
-  if (nft.imageUrl) {
-    sessionStorage.setItem(`avatar-url:${address}`, nft.imageUrl)
-    console.log('[PICKER] stored avatar-url in sessionStorage')
+  const avatarUrl = resolveAvatarImageUrl(nft) || nft.imageUrl
+  if (avatarUrl) {
+    sessionStorage.setItem(`avatar-url:${address}`, avatarUrl)
+    console.log('[PICKER] stored avatar-url in sessionStorage:', avatarUrl)
   } else {
     sessionStorage.removeItem(`avatar-url:${address}`)
     console.log('[PICKER] no imageUrl — removed avatar-url from sessionStorage')
@@ -155,7 +156,7 @@ async function _select(nft, address, resolve) {
   console.log('[PICKER] cache cleared — resolving picker promise with:', nft.imageUrl || null)
 
   _close()
-  resolve(nft.imageUrl || null)
+  resolve(avatarUrl || null)
 }
 
 // ── Skip / procedural ─────────────────────────────────────────
