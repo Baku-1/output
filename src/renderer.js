@@ -403,8 +403,9 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache) {
           const ti=(ty2*AVATAR_TEX_SIZE+tx2)*4
           const td=sp.texture
           const a = td[ti+3]
-          if (a < 20) continue   // transparent pixel — show world behind
-          const mul = fog * rimLight * (a / 255)
+          // Alpha-test cutout (fast, crisp sprite edges; avoids dark halos)
+          if (a < 96) continue
+          const mul = fog * rimLight
           pixels[idx]  =Math.max(0,Math.min(255,Math.round(td[ti]  *mul)))
           pixels[idx+1]=Math.max(0,Math.min(255,Math.round(td[ti+1]*mul)))
           pixels[idx+2]=Math.max(0,Math.min(255,Math.round(td[ti+2]*mul)))
