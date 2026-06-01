@@ -123,6 +123,15 @@ function _isNearWhite(r, g, b) {
   return r > 215 && g > 215 && b > 215
 }
 
+function _isDarkBg(r, g, b) {
+  // Fast luma-ish check: 0..(255*8). Threshold tuned for "studio black" gradients.
+  return (r * 3 + g * 4 + b) < 340
+}
+
+function _isLightBg(r, g, b) {
+  return (r * 3 + g * 4 + b) > 1900
+}
+
 // ── Background removal — BFS flood fill from corners ─────────
 // Marks background pixels (transparent or colour-matched from corners)
 // as alpha=0 so the raycaster world shows through the character silhouette.
@@ -140,6 +149,9 @@ function _removeBackground(data, S) {
   // Axie / studio renders often ship with pure black or white letterboxing
   _peelBorderConnected(data, S, _isNearBlack)
   _peelBorderConnected(data, S, _isNearWhite)
+  // And sometimes gradients: strip any border-connected dark/light background.
+  _peelBorderConnected(data, S, _isDarkBg)
+  _peelBorderConnected(data, S, _isLightBg)
 }
 
 function _borderBgColors(data, S, count) {
