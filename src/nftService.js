@@ -71,13 +71,25 @@ export function isAxieContract(address) {
   return AXIE_CONTRACTS.has((address || '').toLowerCase())
 }
 
+export function axieCdnUrl(axieId) {
+  return `https://axiecdn.axieinfinity.com/axies/${axieId}/axie/axie-full-transparent.png`
+}
+
+// Ordered candidates for Axie bakes — CDN first, then on-chain metadata art.
+export function axieImageCandidates(nft) {
+  const out = []
+  const id = _extractAxieId(nft)
+  if (id) out.push(axieCdnUrl(id))
+  const meta = nft?.imageUrl
+  if (meta && !out.includes(meta)) out.push(meta)
+  return out
+}
+
 // Best image URL for avatar baking. Axies get Sky Mavis transparent PNGs.
 export function resolveAvatarImageUrl(nft) {
   if (!nft) return null
   const id = _extractAxieId(nft)
-  if (id && isAxieNFT(nft)) {
-    return `https://axiecdn.axieinfinity.com/axies/${id}/axie/axie-full-transparent.png`
-  }
+  if (id && isAxieNFT(nft)) return axieCdnUrl(id)
   return _preferAxieTransparentUrl(nft.imageUrl)
 }
 
@@ -85,15 +97,24 @@ export async function loadNFTImage(url, nft = null) {
   const candidates = []
   const add = u => { if (u && !candidates.includes(u)) candidates.push(u) }
 
-  if (nft) add(resolveAvatarImageUrl(nft))
-  add(_preferAxieTransparentUrl(url))
-  add(url)
+  if (nft && isAxieNFT(nft)) {
+    for (const u of axieImageCandidates(nft)) add(u)
+  } else {
+    if (nft) add(resolveAvatarImageUrl(nft))
+    add(_preferAxieTransparentUrl(url))
+    add(url)
+  }
 
   for (const u of candidates) {
     const img = await _loadOneUrl(u)
     if (img) return img
   }
   return null
+}
+
+export async function loadImageUrl(url) {
+  if (!url) return null
+  return _loadOneUrl(_preferAxieTransparentUrl(url) ?? url)
 }
 
 async function _loadOneUrl(url) {

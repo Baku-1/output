@@ -17,7 +17,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { IDB_DB_NAME, IDB_DB_VERSION, IDB_STORE_NAME, AVATAR_TEX_SIZE, AVATAR_CACHE_TTL } from './config.js'
-import { loadNFTImage, isAxieAvatarUrl } from './nftService.js'
+import { loadNFTImage, loadImageUrl, isAxieAvatarUrl, axieImageCandidates } from './nftService.js'
 
 // ── IndexedDB wrapper ─────────────────────────────────────────
 let _db = null
@@ -57,6 +57,10 @@ export const avatarCache = {
 
   async set(address, imgEl, isAxie = false) {
     const tex = _bake(imgEl, isAxie)
+    return avatarCache.putTex(address, tex)
+  },
+
+  async putTex(address, tex) {
     if (!_db) return tex
     return new Promise(resolve => {
       const tx  = _db.transaction(IDB_STORE_NAME, 'readwrite')
@@ -66,7 +70,7 @@ export const avatarCache = {
         ts:   Date.now(),
       })
       req.onsuccess = () => resolve(tex)
-      req.onerror   = () => resolve(tex)   // cache failure is non-fatal
+      req.onerror   = () => resolve(tex)
     })
   },
 
@@ -88,7 +92,8 @@ function _bake(imgEl, isAxie = false) {
 
   if (imgEl && imgEl.naturalWidth > 0) {
     const iw = imgEl.naturalWidth, ih = imgEl.naturalHeight
-    const scale = Math.min(S / iw, S / ih)
+    const inset = isAxie ? 0.86 : 1
+    const scale = Math.min(S / iw, S / ih) * inset
     const dw = iw * scale, dh = ih * scale
     const dx = (S - dw) / 2, dy = (S - dh) / 2
     c.drawImage(imgEl, dx, dy, dw, dh)
@@ -96,14 +101,30 @@ function _bake(imgEl, isAxie = false) {
 
   const data = c.getImageData(0, 0, S, S).data
 
-  if (_hasMeaningfulAlpha(data)) {
+  if (isAxie) {
+    _removeAxieBackground(data, S)
+  } else if (_hasMeaningfulAlpha(data)) {
     _peelBorderConnected(data, S, _isNearBlack)
     _peelBorderConnected(data, S, _isNearWhite)
   } else {
-    _removeBackground(data, S, isAxie)
+    _removeBackground(data, S, false)
   }
 
   return new Uint8Array(_cropToOpaque(data, S).buffer)
+}
+
+function _axieFaceScore(tex, S = AVATAR_TEX_SIZE) {
+  let n = 0
+  const cx = S / 2, cy = S * 0.32
+  const rx = S * 0.24, ry = S * 0.2
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const dx = (x - cx) / rx, dy = (y - cy) / ry
+      if (dx * dx + dy * dy > 1) continue
+      if (tex[(y * S + x) * 4 + 3] > 100) n++
+    }
+  }
+  return n
 }
 
 function _hasMeaningfulAlpha(data) {
@@ -123,13 +144,20 @@ function _isNearWhite(r, g, b) {
   return r > 215 && g > 215 && b > 215
 }
 
-function _isDarkBg(r, g, b) {
-  // Fast luma-ish check: 0..(255*8). Threshold tuned for "studio black" gradients.
-  return (r * 3 + g * 4 + b) < 340
-}
+// ── Axie-only background strip ─────────────────────────────────
+// Shallow border peel only (never floods through dark mask/face parts).
+// Aggressive dark-luma peeling was eating Mask-trait faces.
+function _removeAxieBackground(data, S) {
+  const bgColors = _borderBgColors(data, S, 1)
+  const TOL = 50
+  const MAX_DEPTH = 14
 
-function _isLightBg(r, g, b) {
-  return (r * 3 + g * 4 + b) > 1900
+  for (const [bgR, bgG, bgB] of bgColors) {
+    const colorMatch = (r, g, b) =>
+      Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB) <= TOL
+    _peelBorderConnected(data, S, colorMatch, MAX_DEPTH)
+  }
+  _peelBorderConnected(data, S, (r, g, b) => r < 20 && g < 20 && b < 20, 10)
 }
 
 // ── Background removal — BFS flood fill from corners ─────────
@@ -148,10 +176,6 @@ function _removeBackground(data, S, isAxie = false) {
 
   _peelBorderConnected(data, S, _isNearBlack)
   _peelBorderConnected(data, S, _isNearWhite)
-  if (isAxie) {
-    _peelBorderConnected(data, S, _isDarkBg)
-    _peelBorderConnected(data, S, _isLightBg)
-  }
 }
 
 function _borderBgColors(data, S, count) {
@@ -227,31 +251,39 @@ function _cropToOpaque(data, S) {
   return c.getImageData(0, 0, S, S).data
 }
 
-function _peelBorderConnected(data, S, predicate) {
+function _peelBorderConnected(data, S, predicate, maxDepth = 255) {
   const visited = new Uint8Array(S * S)
+  const depth   = new Uint8Array(S * S)
+  depth.fill(255)
   const qx = new Int16Array(S * S)
   const qy = new Int16Array(S * S)
   let head = 0, tail = 0
 
-  const enqueue = (x, y) => {
+  const enqueue = (x, y, d) => {
     if (x < 0 || x >= S || y < 0 || y >= S) return
-    if (visited[y * S + x]) return
+    if (d > maxDepth || visited[y * S + x]) return
     visited[y * S + x] = 1
+    depth[y * S + x] = d
     qx[tail] = x; qy[tail] = y; tail++
   }
 
-  for (let x = 0; x < S; x++) { enqueue(x, 0); enqueue(x, S - 1) }
-  for (let y = 1; y < S - 1; y++) { enqueue(0, y); enqueue(S - 1, y) }
+  for (let x = 0; x < S; x++) { enqueue(x, 0, 0); enqueue(x, S - 1, 0) }
+  for (let y = 1; y < S - 1; y++) { enqueue(0, y, 0); enqueue(S - 1, y, 0) }
 
   while (head < tail) {
     const x = qx[head], y = qy[head]; head++
+    const d = depth[y * S + x]
+    if (d > maxDepth) continue
     const i = (y * S + x) * 4
     const a = data[i + 3]
     const r = data[i], g = data[i + 1], b = data[i + 2]
     if (a === 0 || predicate(r, g, b)) {
       data[i + 3] = 0
-      enqueue(x + 1, y); enqueue(x - 1, y)
-      enqueue(x, y + 1); enqueue(x, y - 1)
+      const nd = d + 1
+      if (nd <= maxDepth) {
+        enqueue(x + 1, y, nd); enqueue(x - 1, y, nd)
+        enqueue(x, y + 1, nd); enqueue(x, y - 1, nd)
+      }
     }
   }
 }
@@ -301,9 +333,18 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null) {
   if (storedUrl) {
     const isAxie = isAxieAvatarUrl(storedUrl) ||
       sessionStorage.getItem(`avatar-is-axie:${address}`) === '1'
-    const img = await loadNFTImage(storedUrl, _nftHintFromUrl(storedUrl))
+    const hint = _nftHintFromUrl(storedUrl)
+
+    if (isAxie) {
+      const tex = await _bakeBestAxie(hint, storedUrl)
+      if (!tex) return cb(makeProceduralAvatar(address))
+      await avatarCache.putTex(address, tex)
+      return cb(tex)
+    }
+
+    const img = await loadNFTImage(storedUrl, hint)
     if (!img) return cb(makeProceduralAvatar(address))
-    const tex = await avatarCache.set(address, img, isAxie)
+    const tex = await avatarCache.set(address, img, false)
     return cb(tex)
   }
 
@@ -315,4 +356,24 @@ function _nftHintFromUrl(url) {
   const m = url.match(/axies\/(\d+)\//i)
   if (!m) return null
   return { tokenId: m[1], imageUrl: url, contractAddress: '', collectionName: 'Axie' }
+}
+
+async function _bakeBestAxie(hint, storedUrl) {
+  const urls = []
+  if (storedUrl) urls.push(storedUrl)
+  if (hint) {
+    for (const u of axieImageCandidates(hint)) {
+      if (u && !urls.includes(u)) urls.push(u)
+    }
+  }
+
+  let bestTex = null, bestScore = -1
+  for (const u of urls) {
+    const img = await loadImageUrl(u)
+    if (!img) continue
+    const tex = _bake(img, true)
+    const score = _axieFaceScore(tex)
+    if (score > bestScore) { bestScore = score; bestTex = tex }
+  }
+  return bestTex
 }
