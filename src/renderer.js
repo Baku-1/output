@@ -7,7 +7,8 @@
 //   → putImageData (upscale) → Canvas overlays (crosshair, vignette, name tags)
 // ═══════════════════════════════════════════════════════════════
 import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, STORE_GEOMETRY } from './map.js'
-import { RENDER_SCALE, WALL_HEIGHT, AVATAR_TEX_SIZE, WALL_TEX_SIZE, STORE_TEX_SIZE } from './config.js'
+import { RENDER_SCALE, WALL_HEIGHT, AVATAR_TEX_SIZE, AVATAR_SPRITE_SCALE, WALL_TEX_SIZE, STORE_TEX_SIZE } from './config.js'
+import { isAxieAvatarUrl } from './nftService.js'
 import { WING_COLORS, getZone } from './map.js'
 import { NPCS, NPC_CHARACTERS } from './npcs.js'
 
@@ -374,8 +375,8 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache) {
     if(ty<=0.1) continue
 
     const screenX = Math.round((W2/2)*(1+tx/ty))
-    const h = Math.abs(Math.round(H2*WALL_HEIGHT/ty))
-    const w = Math.abs(Math.round(H2*1.0/ty))
+    const h = Math.abs(Math.round(H2 * WALL_HEIGHT * AVATAR_SPRITE_SCALE / ty))
+    const w = Math.abs(Math.round(H2 * AVATAR_SPRITE_SCALE / ty))
 
     const dyStart=Math.max(0,Math.round((H2-h)/2))
     const dyEnd  =Math.min(H2-1,Math.round((H2+h)/2))
@@ -403,9 +404,9 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache) {
           const ti=(ty2*AVATAR_TEX_SIZE+tx2)*4
           const td=sp.texture
           const a = td[ti+3]
-          // Alpha-test cutout (fast, crisp sprite edges; avoids dark halos)
-          if (a < 96) continue
-          const mul = fog * rimLight
+          const axieCutout = sp.isAxie ?? isAxieAvatarUrl(sp.avatarUrl)
+          if (a < (axieCutout ? 96 : 20)) continue
+          const mul = fog * rimLight * (axieCutout ? 1 : a / 255)
           pixels[idx]  =Math.max(0,Math.min(255,Math.round(td[ti]  *mul)))
           pixels[idx+1]=Math.max(0,Math.min(255,Math.round(td[ti+1]*mul)))
           pixels[idx+2]=Math.max(0,Math.min(255,Math.round(td[ti+2]*mul)))
@@ -442,7 +443,7 @@ function _drawNameTags(posX, posY, dirX, dirY, plX, plY, remoteCache) {
     if(ty<=0.2) continue
 
     const screenX = Math.round((W2/2)*(1+tx/ty))
-    const spriteH = Math.abs(W2*WALL_HEIGHT/ty)
+    const spriteH = Math.abs(W2 * WALL_HEIGHT * AVATAR_SPRITE_SCALE / ty)
     const nameY   = H2/2-spriteH/2-6
 
     if(nameY<10||nameY>H2-10) continue

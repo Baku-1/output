@@ -60,11 +60,22 @@ export async function fetchWalletNFTs(address, cursor = null) {
 // -- Resolve an image URL to a loaded HTMLImageElement ---------------
 // Tries IPFS gateway fallback chain for IPFS/Pinata URLs.
 // Returns the image on success, null if all attempts fail.
+// True when avatar URL is from Sky Mavis Axie CDN (or known Axie contract).
+export function isAxieAvatarUrl(url) {
+  if (!url) return false
+  const u = url.toLowerCase()
+  return u.includes('axiecdn.axieinfinity.com') || /\/axies\/\d+\//.test(u)
+}
+
+export function isAxieContract(address) {
+  return AXIE_CONTRACTS.has((address || '').toLowerCase())
+}
+
 // Best image URL for avatar baking. Axies get Sky Mavis transparent PNGs.
 export function resolveAvatarImageUrl(nft) {
   if (!nft) return null
   const id = _extractAxieId(nft)
-  if (id && _isAxieNFT(nft)) {
+  if (id && isAxieNFT(nft)) {
     return `https://axiecdn.axieinfinity.com/axies/${id}/axie/axie-full-transparent.png`
   }
   return _preferAxieTransparentUrl(nft.imageUrl)
@@ -136,7 +147,7 @@ function _tryLoadImage(httpUrl, timeoutMs, crossOrigin = false) {
 // Extract the IPFS CID (+ optional path) from any IPFS-flavoured URL:
 //   ipfs://CID/path          -> "CID/path"
 //   https://*/ipfs/CID/path  -> "CID/path"  (covers cloudflare, Pinata, ipfs.io ...)
-function _isAxieNFT(nft) {
+export function isAxieNFT(nft) {
   const c = (nft.contractAddress || '').toLowerCase()
   const name = (nft.collectionName || '').toLowerCase()
   const img = (nft.imageUrl || '').toLowerCase()

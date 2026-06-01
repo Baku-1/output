@@ -50,8 +50,9 @@ export const MAX_PLAYERS      = 32
 export const IDB_DB_NAME      = 'TheOutlet'
 export const IDB_DB_VERSION   = 5
 export const IDB_STORE_NAME   = 'avatars'
-export const AVATAR_TEX_SIZE  = 64
-export const AVATAR_CACHE_TTL = 7 * 24 * 60 * 60 * 1000
+export const AVATAR_TEX_SIZE    = 64
+export const AVATAR_SPRITE_SCALE = 0.78   // player billboard size (1 = wall height)
+export const AVATAR_CACHE_TTL   = 7 * 24 * 60 * 60 * 1000
 
 // ── IPFS Gateway fallback chain ────────────────────────────────
 export const IPFS_GATEWAYS = [

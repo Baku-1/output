@@ -9,6 +9,7 @@ import {
   LERP_FACTOR, PLAYER_TIMEOUT, BROADCAST_HZ
 } from './config.js'
 import { loadPlayerAvatar } from './avatarCache.js'
+import { isAxieAvatarUrl } from './nftService.js'
 
 // ── Remote player cache ───────────────────────────────────────
 // Keyed by wallet address. Read by render loop at 60fps.
@@ -50,6 +51,12 @@ function _myAvatarUrl() {
   return sessionStorage.getItem(`avatar-url:${myId}`)
 }
 
+function _avatarIsAxie(url) {
+  if (isAxieAvatarUrl(url)) return true
+  if (!myId) return false
+  return sessionStorage.getItem(`avatar-is-axie:${myId}`) === '1'
+}
+
 function _loadRemoteAvatar(id, avatarUrl) {
   loadPlayerAvatar(id, tex => {
     if (remoteCache[id]) remoteCache[id].texture = tex
@@ -84,6 +91,7 @@ export function initMultiplayer(walletAddress) {
           dirY:    payload.dy,
           color:     idToColor(id),
           avatarUrl: payload.avatarUrl || null,
+          isAxie:    payload.isAxie ?? isAxieAvatarUrl(payload.avatarUrl),
           texture:   null,
           lastSeen:  now,
         }
@@ -99,6 +107,7 @@ export function initMultiplayer(walletAddress) {
         remoteCache[id].lastSeen = now
         if (payload.avatarUrl && payload.avatarUrl !== remoteCache[id].avatarUrl) {
           remoteCache[id].avatarUrl = payload.avatarUrl
+          remoteCache[id].isAxie    = payload.isAxie ?? isAxieAvatarUrl(payload.avatarUrl)
           remoteCache[id].texture   = null
           _loadRemoteAvatar(id, payload.avatarUrl)
         }
@@ -154,7 +163,11 @@ export function broadcastPosition(posX, posY, dirX, dirY) {
   sbChannel.send({
     type:    'broadcast',
     event:   'pos',
-    payload: { id: myId, x: posX, y: posY, dx: dirX, dy: dirY, avatarUrl: _myAvatarUrl() },
+    payload: {
+      id: myId, x: posX, y: posY, dx: dirX, dy: dirY,
+      avatarUrl: _myAvatarUrl(),
+      isAxie:    _avatarIsAxie(_myAvatarUrl()),
+    },
   })
 }
 

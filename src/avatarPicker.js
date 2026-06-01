@@ -16,7 +16,7 @@
 //   If that also fails, makeProceduralAvatar() is used instead.
 // ═══════════════════════════════════════════════════════════════
 
-import { fetchWalletNFTs, resolveImageUrl, resolveAvatarImageUrl } from './nftService.js'
+import { fetchWalletNFTs, resolveImageUrl, resolveAvatarImageUrl, isAxieNFT } from './nftService.js'
 import { avatarCache, makeProceduralAvatar } from './avatarCache.js'
 
 // SVG silhouette shown when every gateway fails for a given NFT thumbnail.
@@ -143,6 +143,7 @@ function _makeCard(nft, address, resolve) {
 async function _select(nft, address, resolve) {
   console.log('[PICKER] _select() entered — nft:', nft.name, '| imageUrl:', nft.imageUrl)
   const avatarUrl = resolveAvatarImageUrl(nft) || nft.imageUrl
+  const axie = isAxieNFT(nft)
   if (avatarUrl) {
     sessionStorage.setItem(`avatar-url:${address}`, avatarUrl)
     console.log('[PICKER] stored avatar-url in sessionStorage:', avatarUrl)
@@ -150,6 +151,8 @@ async function _select(nft, address, resolve) {
     sessionStorage.removeItem(`avatar-url:${address}`)
     console.log('[PICKER] no imageUrl — removed avatar-url from sessionStorage')
   }
+  if (axie) sessionStorage.setItem(`avatar-is-axie:${address}`, '1')
+  else sessionStorage.removeItem(`avatar-is-axie:${address}`)
 
   console.log('[PICKER] clearing avatar cache...')
   await avatarCache.clear(address)
@@ -166,6 +169,7 @@ export function setupPickerSkip(address, resolve) {
   skipBtn?.addEventListener('click', () => {
     console.log('[PICKER] skip button clicked — resolving picker promise with null')
     sessionStorage.removeItem(`avatar-url:${address}`)
+    sessionStorage.removeItem(`avatar-is-axie:${address}`)
     avatarCache.clear(address)
     _close()
     resolve(null)

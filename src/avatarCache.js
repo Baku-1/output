@@ -17,7 +17,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { IDB_DB_NAME, IDB_DB_VERSION, IDB_STORE_NAME, AVATAR_TEX_SIZE, AVATAR_CACHE_TTL } from './config.js'
-import { loadNFTImage } from './nftService.js'
+import { loadNFTImage, isAxieAvatarUrl } from './nftService.js'
 
 // ── IndexedDB wrapper ─────────────────────────────────────────
 let _db = null
@@ -55,8 +55,8 @@ export const avatarCache = {
     })
   },
 
-  async set(address, imgEl) {
-    const tex = _bake(imgEl)
+  async set(address, imgEl, isAxie = false) {
+    const tex = _bake(imgEl, isAxie)
     if (!_db) return tex
     return new Promise(resolve => {
       const tx  = _db.transaction(IDB_STORE_NAME, 'readwrite')
@@ -80,7 +80,7 @@ export const avatarCache = {
 // ── Bake an HTMLImageElement into a 64×64 RGBA Uint8Array ────
 // Uses contain-fit so no NFT image is distorted.
 // Background is kept transparent so the raycaster world shows through.
-function _bake(imgEl) {
+function _bake(imgEl, isAxie = false) {
   const S  = AVATAR_TEX_SIZE   // 64
   const oc = document.createElement('canvas')
   oc.width = oc.height = S
@@ -100,7 +100,7 @@ function _bake(imgEl) {
     _peelBorderConnected(data, S, _isNearBlack)
     _peelBorderConnected(data, S, _isNearWhite)
   } else {
-    _removeBackground(data, S)
+    _removeBackground(data, S, isAxie)
   }
 
   return new Uint8Array(_cropToOpaque(data, S).buffer)
@@ -136,7 +136,7 @@ function _isLightBg(r, g, b) {
 // Marks background pixels (transparent or colour-matched from corners)
 // as alpha=0 so the raycaster world shows through the character silhouette.
 // Tolerance of 40 (Manhattan RGB distance) handles white/off-white/dark bgs.
-function _removeBackground(data, S) {
+function _removeBackground(data, S, isAxie = false) {
   const TOL = 85
   const bgColors = _borderBgColors(data, S, 2)
 
@@ -146,12 +146,12 @@ function _removeBackground(data, S) {
     _peelBorderConnected(data, S, colorMatch)
   }
 
-  // Axie / studio renders often ship with pure black or white letterboxing
   _peelBorderConnected(data, S, _isNearBlack)
   _peelBorderConnected(data, S, _isNearWhite)
-  // And sometimes gradients: strip any border-connected dark/light background.
-  _peelBorderConnected(data, S, _isDarkBg)
-  _peelBorderConnected(data, S, _isLightBg)
+  if (isAxie) {
+    _peelBorderConnected(data, S, _isDarkBg)
+    _peelBorderConnected(data, S, _isLightBg)
+  }
 }
 
 function _borderBgColors(data, S, count) {
@@ -299,9 +299,11 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null) {
   // 2. Image URL: explicit (remote broadcast) or local sessionStorage (picker)
   const storedUrl = imageUrl ?? sessionStorage.getItem(`avatar-url:${address}`)
   if (storedUrl) {
+    const isAxie = isAxieAvatarUrl(storedUrl) ||
+      sessionStorage.getItem(`avatar-is-axie:${address}`) === '1'
     const img = await loadNFTImage(storedUrl, _nftHintFromUrl(storedUrl))
     if (!img) return cb(makeProceduralAvatar(address))
-    const tex = await avatarCache.set(address, img)
+    const tex = await avatarCache.set(address, img, isAxie)
     return cb(tex)
   }
 
