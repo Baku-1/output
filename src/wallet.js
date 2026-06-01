@@ -21,7 +21,8 @@ import {
   requestWaypointConnector,
 } from '@sky-mavis/tanto-connect'
 
-const RONIN_PROJECT_ID    = import.meta.env.VITE_RONIN_PROJECT_ID
+const RONIN_PROJECT_ID      = import.meta.env.VITE_RONIN_PROJECT_ID
+const WAYPOINT_CLIENT_ID    = import.meta.env.VITE_WAYPOINT_CLIENT_ID
 
 // ── Internal state ────────────────────────────────────────────
 let _activeConnector = null
@@ -111,9 +112,12 @@ export function connectRoninMobile() {
 
 export function connectWaypoint() {
   console.log('[WALLET] connectWaypoint() entered')
+  if (!WAYPOINT_CLIENT_ID) {
+    throw new Error('VITE_WAYPOINT_CLIENT_ID is not set in .env')
+  }
   const wpConnector = requestWaypointConnector({
     providerConfigs: {
-      clientId: RONIN_PROJECT_ID,
+      clientId: WAYPOINT_CLIENT_ID,
       chainId: ChainIds.RoninMainnet
     }
   })
