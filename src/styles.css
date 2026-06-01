@@ -34,8 +34,10 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 #zone-lbl{position:fixed;top:52px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:9px;letter-spacing:.4em;color:rgba(255,255,255,.28);text-transform:uppercase;pointer-events:none;z-index:10}
 
 /* ── MINIMAP ── */
-#mm{position:fixed;top:56px;right:22px;z-index:10;pointer-events:none}
+#mm{position:fixed;top:56px;right:22px;z-index:10;pointer-events:none;display:flex;flex-direction:column;align-items:stretch;gap:4px}
 #mc{display:block;border:1px solid rgba(0,229,255,.18);background:rgba(0,0,8,.82)}
+#cam-toggle{pointer-events:auto;background:rgba(0,0,8,.88);border:1px solid rgba(0,229,255,.35);color:#00e5ff;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:600;letter-spacing:.08em;padding:4px 0;cursor:pointer;text-align:center;transition:background .15s,border-color .15s}
+#cam-toggle:hover{background:rgba(0,229,255,.12);border-color:rgba(0,229,255,.7)}
 
 /* ── TOAST ── */
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(14px);background:rgba(0,0,0,.92);border:1px solid rgba(255,255,255,.1);padding:8px 20px;font-size:12px;letter-spacing:.07em;color:rgba(255,255,255,.5);pointer-events:none;z-index:10;opacity:0;transition:all .25s;white-space:nowrap}

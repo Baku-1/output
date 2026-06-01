@@ -675,6 +675,92 @@ function _drawVignette() {
   ctx.fillStyle=g; ctx.fillRect(0,0,W2,H2)
 }
 
+// ── Bird's-eye (overhead) view — rendered onto the main canvas ──
+// Draws a zoomed 2D top-down map centred on the player.
+// VIEW_CELLS controls how many map cells are visible in each direction.
+const BIRDS_VIEW_CELLS = 14  // half-extent: 14 cells visible each side
+
+export function renderBirdsEye(posX, posY, dirX, dirY, remoteCache) {
+  const W = canvas.width, H = canvas.height
+  const cellPx = Math.min(W, H) / (BIRDS_VIEW_CELLS * 2 + 1)  // px per cell
+
+  ctx.save()
+  // Dark background
+  ctx.fillStyle = 'rgba(0,0,8,0.96)'
+  ctx.fillRect(0, 0, W, H)
+
+  // Translate so player is always centred
+  const cx = W / 2, cy = H / 2
+  ctx.translate(cx - posX * cellPx, cy - posY * cellPx)
+
+  // Draw map cells
+  for (let my = 0; my < MAP_H; my++) {
+    for (let mx = 0; mx < MAP_W; mx++) {
+      const cell = MAP[my][mx]
+      if (cell === 0) {
+        const zone = getZone(mx + .5, my + .5)
+        ctx.fillStyle = WING_COLORS[zone.id] ? WING_COLORS[zone.id] + '30' : 'rgba(20,20,30,.8)'
+      } else if (cell === CELL.WALL) {
+        ctx.fillStyle = 'rgba(175,180,195,.9)'
+      } else {
+        const sid = CELL_STORE[cell]
+        ctx.fillStyle = sid ? STORES[sid].hex : '#555'
+      }
+      ctx.fillRect(mx * cellPx, my * cellPx, cellPx, cellPx)
+    }
+  }
+
+  // Grid lines (subtle)
+  ctx.strokeStyle = 'rgba(0,229,255,.04)'
+  ctx.lineWidth = 0.5
+  for (let mx = 0; mx <= MAP_W; mx++) {
+    ctx.beginPath(); ctx.moveTo(mx * cellPx, 0); ctx.lineTo(mx * cellPx, MAP_H * cellPx); ctx.stroke()
+  }
+  for (let my = 0; my <= MAP_H; my++) {
+    ctx.beginPath(); ctx.moveTo(0, my * cellPx); ctx.lineTo(MAP_W * cellPx, my * cellPx); ctx.stroke()
+  }
+
+  // Remote players
+  const now = Date.now()
+  for (const p of Object.values(remoteCache)) {
+    if (now - p.lastSeen > 6000) continue
+    const [r, g, b] = p.color
+    ctx.fillStyle = `rgb(${r},${g},${b})`
+    ctx.beginPath(); ctx.arc(p.x * cellPx, p.y * cellPx, cellPx * 0.38, 0, Math.PI * 2); ctx.fill()
+  }
+
+  // NPCs
+  for (const npc of resolvedNPCs) {
+    const [r, g, b] = npc.color
+    ctx.fillStyle = `rgba(${r},${g},${b},0.85)`
+    ctx.beginPath(); ctx.arc(npc.x * cellPx, npc.y * cellPx, cellPx * 0.35, 0, Math.PI * 2); ctx.fill()
+    ctx.strokeStyle = `rgba(${r},${g},${b},0.5)`
+    ctx.lineWidth = 0.5
+    ctx.stroke()
+  }
+
+  // Player dot + direction arrow
+  const px2 = posX * cellPx, py2 = posY * cellPx
+  ctx.fillStyle = '#fff'
+  ctx.beginPath(); ctx.arc(px2, py2, cellPx * 0.42, 0, Math.PI * 2); ctx.fill()
+  ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(px2, py2)
+  ctx.lineTo(px2 + dirX * cellPx * 1.6, py2 + dirY * cellPx * 1.6)
+  ctx.stroke()
+
+  ctx.restore()
+
+  // HUD overlay: label
+  ctx.save()
+  ctx.fillStyle = 'rgba(0,229,255,0.55)'
+  ctx.font = 'bold 10px Rajdhani, sans-serif'
+  ctx.letterSpacing = '0.12em'
+  ctx.textAlign = 'center'
+  ctx.fillText('BIRD\'S-EYE VIEW', W / 2, H - 14)
+  ctx.restore()
+}
+
 // ── Minimap ───────────────────────────────────────────────────
 export function drawMinimap(mmCanvas, posX, posY, dirX, dirY, remoteCache) {
   const mc=mmCanvas.getContext('2d')

@@ -179,26 +179,36 @@ carve(CX1, 1, CX2,  2)      // stub x:19-24, y:1-2
 ;[30,31,32,33].forEach(y => place(18, y, 10))   // Origins   — west wall
 ;[30,31,32,33].forEach(y => place(25, y, 32))   // Atia's Legacy — east wall
 
-// ── Arcade Wing stores — west wall (x=0) player looks west ───
-;[8,9,10].forEach(y    => place(0, y, 18))   // Infinity Soccer
-;[12,13,14].forEach(y  => place(0, y, 19))   // Tiny Drift
-;[16,17,18].forEach(y  => place(0, y, 20))   // Lunacia Cup
-;[20,21,22].forEach(y  => place(0, y, 21))   // Axie Ball
+// ── Axie Game-Verse Wing — 8 walls, all size:4 ───────────────
+// W1  Arcade West  (x=0, dir:v)
+;[8,9,10,11].forEach(y    => place(0, y, 18))   // Infinity Soccer
+;[12,13,14,15].forEach(y  => place(0, y, 19))   // Tiny Drift
 
-// ── Puzzle Wing stores — east wall (x=45) player looks east ──
-;[8,9,10].forEach(y    => place(45, y, 22))   // Axie Quest
-;[11,12,13].forEach(y  => place(45, y, 23))   // Puzzle Champions
-;[14,15,16].forEach(y  => place(45, y, 24))   // Culinary Wars
-;[17,18,19].forEach(y  => place(45, y, 25))   // Tri-Force
-;[20,21,22].forEach(y  => place(45, y, 26))   // Den of Mysteries
+// W2  Arcade North  (y=7, dir:h)  — end caps: x=0 and x=9-10 stay wall
+;[1,2,3,4].forEach(x  => place(x, 7, 20))   // Lunacia Cup
+;[5,6,7,8].forEach(x  => place(x, 7, 21))   // Axie Ball
 
-// ── Action Wing stores — south wall (y=18) player looks south ─
-// Doorway at x:19-24 splits the wall into left and right banks
-;[11,12].forEach(x  => place(x, 18, 27))   // Axie Sky Smash
-;[14,15].forEach(x  => place(x, 18, 28))   // Axie Infinity War
-;[17,18].forEach(x  => place(x, 18, 29))   // Tri-Fields
-;[25,26].forEach(x  => place(x, 18, 30))   // Across Lunacia
-;[28,29].forEach(x  => place(x, 18, 31))   // Tacticards
+// W3  Puzzle East  (x=45, dir:v)
+;[8,9,10,11].forEach(y    => place(45, y, 22))   // Axie Quest
+;[12,13,14,15].forEach(y  => place(45, y, 23))   // Puzzle Champions
+;[16,17,18,19].forEach(y  => place(45, y, 24))   // Culinary Wars
+
+// W4  Puzzle North  (y=7, dir:h)  — end cap: x=33 corner stays wall
+;[34,35,36,37].forEach(x  => place(x, 7, 25))   // Tri-Force
+;[38,39,40,41].forEach(x  => place(x, 7, 26))   // Den of Mysteries
+
+// W5  Action South-Left  (y=18, x:11-18)
+;[11,12,13,14].forEach(x  => place(x, 18, 27))   // Axie Sky Smash
+;[15,16,17,18].forEach(x  => place(x, 18, 28))   // Axie Infinity War
+
+// W6  Action South-Right  (y=18, x:25-28) — x=29-32 stays plain
+;[25,26,27,28].forEach(x  => place(x, 18, 29))   // Tri-Fields
+
+// W7  Action West  (x=10, y:3-6)  — y=2 north corner and y=7 stay wall
+;[3,4,5,6].forEach(y  => place(10, y, 31))   // Tacticards
+
+// W8  Action East  (x=33, y:3-6)  — y=2 north corner and y=7 stay wall
+;[3,4,5,6].forEach(y  => place(33, y, 30))   // Across Lunacia
 
 // ── Zone lookup ───────────────────────────────────────────────
 export function getZone(x, y) {
@@ -244,26 +254,31 @@ export const STORE_GEOMETRY = {
   // Axie Hall flagships
   axie:      { ax:18, ay:30, dir:'v', size:4 },
   atia:      { ax:25, ay:30, dir:'v', size:4 },
-  // Arcade Wing — west wall (x=0)
-  infinitysoccer: { ax:0, ay: 8, dir:'v', size:3 },
-  tinydrift:      { ax:0, ay:12, dir:'v', size:3 },
-  lunaciacup:     { ax:0, ay:16, dir:'v', size:3 },
-  axieball:       { ax:0, ay:20, dir:'v', size:3 },
-  // Puzzle Wing — east wall (x=45)
-  axiequest:    { ax:45, ay: 8, dir:'v', size:3 },
-  puzzlechamps: { ax:45, ay:11, dir:'v', size:3 },
-  culinarywars: { ax:45, ay:14, dir:'v', size:3 },
-  triforce:     { ax:45, ay:17, dir:'v', size:3 },
-  denofmyst:    { ax:45, ay:20, dir:'v', size:3 },
-  // Action Wing — south wall (y=18), split around doorway at x:19-24
-  skysmash:      { ax:11, ay:18, dir:'h', size:2 },
-  axiewar:       { ax:14, ay:18, dir:'h', size:2 },
-  trifields:     { ax:17, ay:18, dir:'h', size:2 },
-  acrosslunacia: { ax:25, ay:18, dir:'h', size:2 },
-  tacticards:    { ax:28, ay:18, dir:'h', size:2 },
+  // W1  Arcade West  (x=0, dir:v)
+  infinitysoccer: { ax:0, ay: 8, dir:'v', size:4 },
+  tinydrift:      { ax:0, ay:12, dir:'v', size:4 },
+  // W2  Arcade North  (y=7, dir:h)
+  lunaciacup:     { ax:1, ay: 7, dir:'h', size:4 },
+  axieball:       { ax:5, ay: 7, dir:'h', size:4 },
+  // W3  Puzzle East  (x=45, dir:v)
+  axiequest:    { ax:45, ay: 8, dir:'v', size:4 },
+  puzzlechamps: { ax:45, ay:12, dir:'v', size:4 },
+  culinarywars: { ax:45, ay:16, dir:'v', size:4 },
+  // W4  Puzzle North  (y=7, dir:h)
+  triforce:     { ax:34, ay: 7, dir:'h', size:4 },
+  denofmyst:    { ax:38, ay: 7, dir:'h', size:4 },
+  // W5  Action South-Left  (y=18, x:11-18)
+  skysmash:      { ax:11, ay:18, dir:'h', size:4 },
+  axiewar:       { ax:15, ay:18, dir:'h', size:4 },
+  // W6  Action South-Right  (y=18, x:25-28)
+  trifields:     { ax:25, ay:18, dir:'h', size:4 },
+  // W7  Action West  (x=10, y:3-6)
+  tacticards:    { ax:10, ay: 3, dir:'v', size:4 },
+  // W8  Action East  (x=33, y:3-6)
+  acrosslunacia: { ax:33, ay: 3, dir:'v', size:4 },
 }
 
-// ── Minimap zone colours ──────────────────────────────────────
+// ── Minimap zone colours ────────────────────────────────────────────────
 export const WING_COLORS = {
   'RPG WING':      '#9b5fff',
   'STRATEGY WING': '#00d4ff',

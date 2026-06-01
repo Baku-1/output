@@ -5,7 +5,7 @@
 import { avatarCache, loadPlayerAvatar } from './avatarCache.js'
 import { showAvatarPicker, setupPickerSkip } from './avatarPicker.js'
 import { initMultiplayer, broadcastPosition, interpolatePlayers, remoteCache, onStoreEntry, broadcastStoreEntry } from './multiplayer.js'
-import { initRenderer, renderFrame, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
+import { initRenderer, renderFrame, renderBirdsEye, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
 import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
 import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, getZone } from './map.js'
@@ -14,6 +14,9 @@ import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE } from './config.j
 // ── Camera state ──────────────────────────────────────────────
 let posX=21.5, posY=53.5, dirX=0, dirY=-1
 let plX=FOV_PLANE, plY=0
+
+// ── Camera mode ───────────────────────────────────────────────
+let isBirdsEye = false
 
 // ── Game state ────────────────────────────────────────────────
 let running   = false
@@ -28,6 +31,13 @@ const keys    = {}
 const canvas = document.getElementById('c')
 const mmCanvas = document.getElementById('mc')
 initRenderer(canvas)
+
+// ── Camera toggle ─────────────────────────────────────────────
+const camToggleBtn = document.getElementById('cam-toggle')
+camToggleBtn.addEventListener('click', () => {
+  isBirdsEye = !isBirdsEye
+  camToggleBtn.textContent = isBirdsEye ? '🗺 3RD' : '👁 1ST'
+})
 
 // ═══════════════════════════════════════════════════════════════
 // WALLET CONNECT UI
@@ -237,8 +247,12 @@ function loop(ts) {
 
   const anyPanelOpen = panelOpen() || npcDialogueOpen?.()
   if (running && !anyPanelOpen) update(dt)
-  renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStore)
-  updateStoreOverlays(canvas.getContext('2d'), posX, posY, dirX, dirY, plX, plY, anyPanelOpen ? new Set() : nearbyStores, canvas.width, canvas.height, t)
+  if (isBirdsEye) {
+    renderBirdsEye(posX, posY, dirX, dirY, remoteCache)
+  } else {
+    renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStore)
+    updateStoreOverlays(canvas.getContext('2d'), posX, posY, dirX, dirY, plX, plY, anyPanelOpen ? new Set() : nearbyStores, canvas.width, canvas.height, t)
+  }
   drawMinimap(mmCanvas, posX, posY, dirX, dirY, remoteCache)
 
   requestAnimationFrame(loop)
