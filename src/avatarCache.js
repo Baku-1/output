@@ -196,9 +196,9 @@ function _removeAxieBackground(data, S) {
 // MAX_BG_DEPTH: limits BFS to a shallow border strip so it can't
 // tunnel through a connected path all the way into the character.
 function _removeBackground(data, S, isAxie = false) {
-  const TOL          = 40
+  const TOL          = 55   // raised from 40: catches tan/beige/off-white backgrounds
   const MAX_BG_DEPTH = 10   // pixels inward the BFS may travel
-  const bgColors     = _borderBgColors(data, S, 2)
+  const bgColors     = _borderBgColors(data, S, 3)  // sample top 3 border colors
 
   for (const [bgR, bgG, bgB] of bgColors) {
     const colorMatch = (r, g, b) =>

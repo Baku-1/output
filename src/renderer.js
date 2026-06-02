@@ -226,12 +226,72 @@ function resizeRenderer() {
 
 // ── Main render call ──────────────────────────────────────────
 export function renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfTexture) {
-  // Camera 5 units behind player — far enough that self-sprite is a reasonable size on screen
-  const CAM_DIST = 5.0
-  const camX = posX - dirX * CAM_DIST
-  const camY = posY - dirY * CAM_DIST
-  const selfSprite = selfTexture ? { x: posX, y: posY, texture: selfTexture } : null
-  renderFrame(camX, camY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfSprite)
+  const MAX_DIST = 4.5
+  const STEP = 0.25
+
+  // Walk backward from player; stop before wall or map edge
+  let camX = posX, camY = posY, camDist = 0
+  for (let d = STEP; d <= MAX_DIST; d += STEP) {
+    const tx = posX - dirX * d
+    const ty = posY - dirY * d
+    const mx = tx | 0, my = ty | 0
+    if (mx < 0 || mx >= MAP_W || my < 0 || my >= MAP_H) break
+    if (MAP[my][mx] !== CELL.FLOOR) break
+    camX = tx; camY = ty; camDist = d
+  }
+
+  // Render world from offset camera — no self-sprite in the billboard pass
+  renderFrame(camX, camY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, null)
+
+  // Draw self as a 2D screen-space overlay — avoids all projection/clipping issues
+  if (selfTexture && camDist > 0.5) {
+    _drawSelfOverlay(selfTexture, t, camDist)
+  }
+}
+
+// ── Third-person self overlay — screen-space draw ─────────────
+// Draws the player's own avatar sprite as a 2D element centered
+// slightly below mid-screen. Size scales with camera distance (closer = bigger).
+function _drawSelfOverlay(selfTexture, t, camDist) {
+  const W = canvas.width, H = canvas.height
+
+  if (selfTexture instanceof SpineAvatarInstance || selfTexture instanceof GenericSpineAvatarInstance) {
+    selfTexture.update(t - (selfTexture._lastT || 0))
+    selfTexture._lastT = t
+    if (!selfTexture.isReady || !selfTexture._canvas) return
+
+    const spriteH = Math.round(H * 0.38 * (4.5 / Math.max(camDist, 1.5)))
+    const spriteW = Math.round(spriteH * 0.75)
+    const dx = Math.round((W - spriteW) / 2)
+    const dy = Math.round(H * 0.32)
+
+    ctx.save()
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(selfTexture._canvas, dx, dy, spriteW, spriteH)
+    ctx.restore()
+  } else if (selfTexture) {
+    // Static Uint8Array texture — blit via cached canvas (create once, reuse every frame)
+    if (!_drawSelfOverlay._cache || _drawSelfOverlay._cacheSrc !== selfTexture) {
+      const S = AVATAR_TEX_SIZE
+      const c = document.createElement('canvas')
+      c.width = S; c.height = S
+      c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(selfTexture.buffer), S, S), 0, 0)
+      _drawSelfOverlay._cache = c
+      _drawSelfOverlay._cacheSrc = selfTexture
+    }
+
+    const spriteH = Math.round(H * 0.35 * (4.5 / Math.max(camDist, 1.5)))
+    const spriteW = spriteH
+    const dx = Math.round((W - spriteW) / 2)
+    const dy = Math.round(H * 0.32)
+
+    ctx.save()
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(_drawSelfOverlay._cache, dx, dy, spriteW, spriteH)
+    ctx.restore()
+  }
 }
 
 export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfSprite = null) {
@@ -382,10 +442,6 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
     if (sp.texture instanceof SpineAvatarInstance || sp.texture instanceof GenericSpineAvatarInstance) {
       _drawSpineOverlay(ctx, W2full, H2full, posX, posY, dirX, dirY, plX, plY, sp, dt)
     }
-  }
-  // Self-sprite Spine overlay for third-person
-  if (selfSprite && (selfSprite.texture instanceof SpineAvatarInstance || selfSprite.texture instanceof GenericSpineAvatarInstance)) {
-    _drawSpineOverlay(ctx, W2full, H2full, posX, posY, dirX, dirY, plX, plY, selfSprite, dt)
   }
   ctx.restore()
 

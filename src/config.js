@@ -49,7 +49,7 @@ export const MAX_PLAYERS      = 32
 
 // ── Avatar cache (IndexedDB) ───────────────────────────────────
 export const IDB_DB_NAME      = 'TheOutlet'
-export const IDB_DB_VERSION   = 6
+export const IDB_DB_VERSION   = 7
 export const IDB_STORE_NAME   = 'avatars'
 export const AVATAR_TEX_SIZE    = 256
 export const AVATAR_SPRITE_SCALE = 0.70   // player billboard size (1 = wall height)
