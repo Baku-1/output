@@ -9,8 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "@sky-mavis/tanto-connect": "^0.0.22"
+    "@axieinfinity/mixer": "*",
+    "@esotericsoftware/spine-canvas": "*",
+    "@ethersproject/address": "^5.8.0",
+    "@ethersproject/base64": "^5.8.0",
+    "@ethersproject/bignumber": "^5.8.0",
+    "@ethersproject/bytes": "^5.8.0",
+    "@ethersproject/hash": "^5.8.0",
+    "@sky-mavis/tanto-connect": "^0.0.22",
+    "@supabase/supabase-js": "^2.39.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"

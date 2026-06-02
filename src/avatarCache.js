@@ -14,10 +14,38 @@
 //   avatarCache.get(address)            → Promise<Uint8Array|null>
 //   avatarCache.set(address, imgEl)     → Promise<Uint8Array>
 //   loadPlayerAvatar(address, cb)       → void  (async, cb(tex))
+//   getAxieGenes(tokenId)               → Promise<string|null>
 // ═══════════════════════════════════════════════════════════════
 
 import { IDB_DB_NAME, IDB_DB_VERSION, IDB_STORE_NAME, AVATAR_TEX_SIZE, AVATAR_CACHE_TTL } from './config.js'
 import { loadNFTImage, loadImageUrl, isAxieAvatarUrl, axieImageCandidates } from './nftService.js'
+import { SpineAvatarInstance, AXIE_CONTRACT } from './spineAvatar.js'
+
+// ── Sky Mavis GraphQL — fetch Axie genes by tokenId ─────────────
+// Returns the genes hex string, or null if unavailable.
+// Requires VITE_SKY_MAVIS_API_KEY in .env; skips silently if missing.
+export async function getAxieGenes(tokenId) {
+  const apiKey = import.meta.env.VITE_SKY_MAVIS_API_KEY
+  if (!apiKey) return null
+  try {
+    const res = await fetch('https://graphql-gateway.axieinfinity.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        query: `{ axie(axieId: "${tokenId}") { id genes } }`,
+      }),
+    })
+    if (!res.ok) return null
+    const json = await res.json()
+    return json?.data?.axie?.genes ?? null
+  } catch (e) {
+    console.warn('[avatarCache] getAxieGenes failed:', e)
+    return null
+  }
+}
 
 // ── IndexedDB wrapper ─────────────────────────────────────────
 let _db = null
@@ -161,9 +189,6 @@ function _removeAxieBackground(data, S) {
 }
 
 // ── Background removal — BFS flood fill from corners ─────────
-// Marks background pixels (transparent or colour-matched from corners)
-// as alpha=0 so the raycaster world shows through the character silhouette.
-// Tolerance of 40 (Manhattan RGB distance) handles white/off-white/dark bgs.
 function _removeBackground(data, S, isAxie = false) {
   const TOL = 85
   const bgColors = _borderBgColors(data, S, 2)
@@ -210,8 +235,6 @@ function _borderBgColors(data, S, count) {
   return out
 }
 
-// BFS from the image border; strip pixels matching predicate (alpha → 0).
-// Re-bake opaque pixels into a tight 64×64 frame (drops leftover letterbox).
 function _cropToOpaque(data, S) {
   let minX = S, minY = S, maxX = -1, maxY = -1
   for (let y = 0; y < S; y++) {
@@ -289,15 +312,12 @@ function _peelBorderConnected(data, S, predicate, maxDepth = 255) {
 }
 
 // ── Procedural fallback avatar ────────────────────────────────
-// Generates a coloured silhouette from the wallet address hash.
-// Used when no NFT is selected or image fails to load.
 export function makeProceduralAvatar(address) {
   const S  = AVATAR_TEX_SIZE
   const oc = document.createElement('canvas')
   oc.width = oc.height = S
   const c  = oc.getContext('2d')
 
-  // Hash address to hue
   let hash = 0
   for (let i = 0; i < address.length; i++) {
     hash = ((hash << 5) - hash) + address.charCodeAt(i)
@@ -305,12 +325,9 @@ export function makeProceduralAvatar(address) {
   }
   const hue = Math.abs(hash) % 360
 
-  // Head
   c.fillStyle = `hsl(${hue},70%,60%)`
   c.beginPath(); c.ellipse(S/2, S*0.25, S*0.15, S*0.15, 0, 0, Math.PI*2); c.fill()
-  // Body
   c.fillRect(S*0.3, S*0.38, S*0.4, S*0.32)
-  // Band accent
   c.fillStyle = `hsl(${(hue+40)%360},80%,65%)`
   c.fillRect(S*0.3, S*0.46, S*0.4, S*0.06)
 
@@ -320,8 +337,15 @@ export function makeProceduralAvatar(address) {
 // ── High-level loader ─────────────────────────────────────────
 // Checks cache first, then fetches the image URL stored in
 // sessionStorage (set by avatarPicker on selection).
-// Calls cb(texture) when ready.
-export async function loadPlayerAvatar(address, cb, imageUrl = null) {
+// Calls cb(texture) when ready — texture is either:
+//   • Uint8Array (64×64) — static BFS-baked NFT or procedural
+//   • SpineAvatarInstance (128×128) — live animated Axie
+//
+// @param {string}      address   — wallet address (cache key)
+// @param {function}    cb        — callback(tex)
+// @param {string|null} imageUrl  — explicit URL (remote broadcast path)
+// @param {object|null} nft       — { contractAddress, tokenId } if available
+export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null) {
   // 1. IndexedDB cache — local player only (remote URL may differ from cached bake)
   if (!imageUrl) {
     const cached = await avatarCache.get(address)
@@ -331,17 +355,37 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null) {
   // 2. Image URL: explicit (remote broadcast) or local sessionStorage (picker)
   const storedUrl = imageUrl ?? sessionStorage.getItem(`avatar-url:${address}`)
   if (storedUrl) {
-    const isAxie = isAxieAvatarUrl(storedUrl) ||
+    const isAxie = (nft?.contractAddress?.toLowerCase() === AXIE_CONTRACT) ||
+      isAxieAvatarUrl(storedUrl) ||
       sessionStorage.getItem(`avatar-is-axie:${address}`) === '1'
     const hint = _nftHintFromUrl(storedUrl)
 
     if (isAxie) {
+      // ── Spine path: try Ghost Canvas Render if API key + tokenId available ──
+      const tokenId = nft?.tokenId ?? hint?.tokenId ?? null
+      const apiKey  = import.meta.env.VITE_SKY_MAVIS_API_KEY
+
+      if (tokenId && apiKey) {
+        const genes = await getAxieGenes(tokenId)
+        if (genes) {
+          const inst = new SpineAvatarInstance()
+          await inst.init(genes)
+          if (inst.isReady) {
+            // Return the live SpineAvatarInstance — renderer detects via .pixelData
+            return cb(inst)
+          }
+          // init() failed — fall through to static bake below
+        }
+      }
+
+      // ── Static bake fallback (no API key, no tokenId, or Spine init failed) ──
       const tex = await _bakeBestAxie(hint, storedUrl)
       if (!tex) return cb(makeProceduralAvatar(address))
       await avatarCache.putTex(address, tex)
       return cb(tex)
     }
 
+    // ── Non-Axie NFT: existing BFS background-removal bake ──────────────────
     const img = await loadNFTImage(storedUrl, hint)
     if (!img) return cb(makeProceduralAvatar(address))
     const tex = await avatarCache.set(address, img, false)

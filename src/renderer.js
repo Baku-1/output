@@ -10,6 +10,10 @@ import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, STORE_GEOMETRY } from './m
 import { RENDER_SCALE, WALL_HEIGHT, AVATAR_TEX_SIZE, AVATAR_SPRITE_SCALE, WALL_TEX_SIZE, STORE_TEX_SIZE } from './config.js'
 import { WING_COLORS, getZone } from './map.js'
 import { NPCS, NPC_CHARACTERS } from './npcs.js'
+import { SpineAvatarInstance } from './spineAvatar.js'
+
+// ── Per-frame delta tracker — updated in renderFrame() ───────────
+let _lastRenderT = 0
 
 // ── Utility ───────────────────────────────────────────────────
 export function hexRGB(h) {
@@ -342,14 +346,34 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
   }
 
   // ── 3. Sprite cast — NPCs + remote players (far to near) ───
+  // Per-frame delta — computed once here, used by both _drawSprites and _drawSpineOverlay
+  const dt = t - _lastRenderT
+  _lastRenderT = t
+
   // NPCs are sorted with remote players so z-buffer occlusion is correct
-  _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache)
+  _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt)
   drawNPCSprites(posX, posY, dirX, dirY, plX, plY)
 
   // ── 4. Flush to screen ──────────────────────────────────────
   offCtx.putImageData(imgData, 0, 0)
   ctx.imageSmoothingEnabled = false
   ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height)
+
+  // ── 5. Spine overlays — drawImage pass at full canvas resolution ─
+  // Runs after putImageData so the z-buffer reflects the final wall depths.
+  // Only SpineAvatarInstance sprites; static textures were handled above.
+  const W2full = canvas.width, H2full = canvas.height
+  const now2 = Date.now()
+  ctx.save()
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  for (const sp of Object.values(remoteCache)) {
+    if (now2 - sp.lastSeen > 6000) continue
+    if (sp.texture instanceof SpineAvatarInstance) {
+      _drawSpineOverlay(ctx, W2full, H2full, posX, posY, dirX, dirY, plX, plY, sp, dt)
+    }
+  }
+  ctx.restore()
 
   _drawCrosshair()
   _drawVignette()
@@ -358,7 +382,10 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
 }
 
 // ── Sprite billboard caster ───────────────────────────────────
-function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache) {
+// Handles two texture sources:
+//   • Uint8Array (64×64) — static BFS-baked NFT or procedural
+//   • SpineAvatarInstance (128×128) — live animated Axie via Ghost Canvas Render
+function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt) {
   const W2=RW, H2=RH, now=Date.now()
   const invDet = 1.0/(plX*dirY - dirX*plY)
 
@@ -374,16 +401,30 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache) {
     if(ty<=0.1) continue
 
     const screenX = Math.round((W2/2)*(1+tx/ty))
-    const h = Math.abs(Math.round(H2 * WALL_HEIGHT * AVATAR_SPRITE_SCALE / ty))
-    const w = Math.abs(Math.round(H2 * AVATAR_SPRITE_SCALE / ty))
+    const h = Math.abs(Math.round(H2 * WALL_HEIGHT / ty))
+    const w = h  // square billboard
 
     const dyStart=Math.max(0,Math.round((H2-h)/2))
     const dyEnd  =Math.min(H2-1,Math.round((H2+h)/2))
     const dxStart=Math.max(0,screenX-(w>>1))
     const dxEnd  =Math.min(W2-1,screenX+(w>>1))
 
-    const fog      = Math.max(0, Math.min(1, 1-ty/(MAP_H*0.65)))
-    const hasTexture = sp.texture !== null
+    const fog = Math.max(0, Math.min(1, 1-ty/(MAP_H*0.65)))
+
+    // ── Resolve texture data + size — once per sprite, not per column ────────
+    let texData    = null    // Uint8ClampedArray | Uint8Array
+    let texSize    = AVATAR_TEX_SIZE  // 64 for static, 128 for Spine
+    let hasTexture = false
+
+    if (sp.texture instanceof SpineAvatarInstance) {
+      // High-quality drawImage overlay handled in _drawSpineOverlay after pixel flush.
+      // Skip pixel-sampling entirely; procedural silhouette omitted while loading.
+      continue
+    } else if (sp.texture !== null) {
+      texData    = sp.texture
+      texSize    = AVATAR_TEX_SIZE     // 64
+      hasTexture = true
+    }
 
     for (let stripe=dxStart; stripe<=dxEnd; stripe++) {
       if(ty>=zBuf[stripe]) continue
@@ -398,16 +439,15 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache) {
         const idx  = (row*W2+stripe)*4
 
         if (hasTexture) {
-          const tx2=Math.min(AVATAR_TEX_SIZE-1,Math.floor(texU*AVATAR_TEX_SIZE))
-          const ty2=Math.min(AVATAR_TEX_SIZE-1,Math.floor(texV*AVATAR_TEX_SIZE))
-          const ti=(ty2*AVATAR_TEX_SIZE+tx2)*4
-          const td=sp.texture
-          const a = td[ti+3]
+          const tx2=Math.min(texSize-1,Math.floor(texU*texSize))
+          const ty2=Math.min(texSize-1,Math.floor(texV*texSize))
+          const ti=(ty2*texSize+tx2)*4
+          const a = texData[ti+3]
           if (a < 20) continue
-          const mul = fog * rimLight * (a / 255)
-          pixels[idx]  =Math.max(0,Math.min(255,Math.round(td[ti]  *mul)))
-          pixels[idx+1]=Math.max(0,Math.min(255,Math.round(td[ti+1]*mul)))
-          pixels[idx+2]=Math.max(0,Math.min(255,Math.round(td[ti+2]*mul)))
+          const mul = fog * rimLight
+          pixels[idx]  =Math.max(0,Math.min(255,Math.round(texData[ti]  *mul)))
+          pixels[idx+1]=Math.max(0,Math.min(255,Math.round(texData[ti+1]*mul)))
+          pixels[idx+2]=Math.max(0,Math.min(255,Math.round(texData[ti+2]*mul)))
           pixels[idx+3]=255
         } else {
           const isHead = texV<0.18, isBand = texV>0.35&&texV<0.55
@@ -422,6 +462,76 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache) {
       }
     }
   }
+}
+
+// ── Spine avatar overlay ──────────────────────────────────────
+// Replaces the per-pixel loop for SpineAvatarInstance objects.
+// SpineAvatarInstance renders into this._canvas each update(); we read that
+// canvas directly via drawImage — no pixel readback, no offscreenCanvas alias.
+//
+// Parameters use full canvas dimensions (W, H), not render-scale (RW, RH).
+// zBuf is in render-scale coords — map with scaleX = RW / W.
+function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp, dt) {
+  const invDet = 1.0 / (plX * dirY - dirX * plY)
+  const sx = sp.x - posX, sy = sp.y - posY
+  const tx = invDet * ( dirY * sx - dirX * sy)
+  const ty = invDet * (-plY  * sx + plX  * sy)
+  if (ty <= 0.1) return
+
+  // Advance Spine animation — once per sprite per frame
+  sp.texture.update(dt)
+  // _canvas is the live offscreen canvas Spine renders into each update()
+  if (!sp.texture.isReady || !sp.texture._canvas) return
+
+  // Billboard screen rect (full-res coords)
+  const screenX  = Math.round((W / 2) * (1 + tx / ty))
+  const spriteH  = Math.abs(Math.round(H * WALL_HEIGHT * AVATAR_SPRITE_SCALE / ty))
+  const spriteW  = Math.abs(Math.round(H * AVATAR_SPRITE_SCALE / ty))
+
+  const dyStart  = Math.round((H - spriteH) / 2)
+  const dyEnd    = Math.round((H + spriteH) / 2)
+  const dxCenter = screenX
+  const dxStart  = dxCenter - (spriteW >> 1)   // may be off-screen — used for drawImage dest
+  const dxEnd    = dxCenter + (spriteW >> 1)
+
+  // Clamp column range to screen
+  const colL = Math.max(0, dxStart)
+  const colR = Math.min(W - 1, dxEnd)
+  if (colL > colR || spriteW <= 0 || spriteH <= 0) return
+
+  const fog      = Math.max(0, Math.min(1, 1 - ty / (MAP_H * 0.65)))
+  const scaleX   = RW / W   // render-scale factor for zBuf lookup
+
+  // ── Build clip path from z-buffer visible column runs ────────
+  // Group consecutive visible columns into rect runs for efficiency.
+  ctx.beginPath()
+  let inRun = false
+  let runStart = 0
+
+  for (let col = colL; col <= colR; col++) {
+    const renderCol = Math.min(RW - 1, Math.floor(col * scaleX))
+    const visible   = ty < zBuf[renderCol]
+
+    if (visible && !inRun) {
+      runStart = col
+      inRun    = true
+    } else if (!visible && inRun) {
+      ctx.rect(runStart, dyStart, col - runStart, dyEnd - dyStart)
+      inRun = false
+    }
+  }
+  if (inRun) {
+    ctx.rect(runStart, dyStart, colR + 1 - runStart, dyEnd - dyStart)
+  }
+
+  ctx.save()
+  ctx.clip()
+
+  // ── drawImage — Spine's live _canvas → billboard rect ───────
+  ctx.globalAlpha = fog
+  ctx.drawImage(sp.texture._canvas, dxStart, dyStart, spriteW, spriteH)
+
+  ctx.restore()
 }
 
 // ── Player name tags ──────────────────────────────────────────
@@ -760,7 +870,7 @@ export function renderBirdsEye(posX, posY, dirX, dirY, remoteCache) {
   ctx.font = 'bold 10px Rajdhani, sans-serif'
   ctx.letterSpacing = '0.12em'
   ctx.textAlign = 'center'
-  ctx.fillText('BIRD\'S-EYE VIEW', W / 2, H - 14)
+  ctx.fillText("BIRD'S-EYE VIEW", W / 2, H - 14)
   ctx.restore()
 }
 
