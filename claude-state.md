@@ -3,6 +3,52 @@ WebZone 001 · Game Mall
 
 ---
 
+## ⚠ IN PROGRESS — READ THIS FIRST EVERY SESSION
+
+**Rule: Before touching any code, update this section. After each file change, update this section. This is the only record that survives a context wipe.**
+
+### Current task
+IDLE — session ended 2026-06-02
+
+### All changes this session (in order)
+
+**1. BFS fix (avatarCache.js)** — TOL 85→40, maxDepth 255→10, conditional white/black peels. Fixes KTTY sprites chopped up.
+
+**2. 6-bone GenericSpineAvatarInstance (src/genericSpineAvatar.js — NEW FILE)**
+Root→Hip→Torso→Head/L-Arm/R-Arm. BFS clean inline, image sliced into 5 regions, sine animation.
+avatarCache.js non-Axie path routes here → fallback static bake. renderer.js instanceof checks updated.
+⚠ NOT TESTED — clear IndexedDB before testing.
+
+**3. NPC renderer hardcoded 64px (renderer.js drawNPCSprites)**
+AVATAR_TEX_SIZE=256 broke Rebo — NPC textures are always 64×64. Fixed: `const S = 64`.
+Without this: Rebo = black rectangle.
+
+**4. Rebo position (npcs.js)**
+Was y:53 (food court). Fixed to y:75 (lobby y:72-78). Comment said lobby but coord was wrong.
+
+**5. Standalone guide panel removed**
+index.html: #guide div deleted. main.js: GUIDE_SYS, gHist, gLoad, sendGuide, addGM, gsend/gi listeners all removed.
+Rebo NPC dialogue is the ONLY chat.
+
+**6. Ollama switchover (config.js + main.js)**
+config.js: ANTHROPIC_MODEL → OLLAMA_URL + OLLAMA_MODEL. main.js: both fetches → `${OLLAMA_URL}/api/chat`.
+Default: llama3.2 @ localhost:11434. Override with VITE_OLLAMA_URL / VITE_OLLAMA_MODEL in Vercel.
+⚠ NOT TESTED — requires Ollama running with llama3.2 pulled.
+
+**7. Third-person view (renderer.js + main.js)**
+main.js: viewMode 'first'|'third'|'overhead', button 👁 1ST → 🎮 3RD → 🗺 TOP.
+selfTexture now stored (was empty callback before).
+renderer.js: renderThirdPerson() — camera offset 2.5 units back, self-sprite injected.
+_drawSprites() + Spine overlay both handle selfSprite param.
+⚠ NOT TESTED.
+
+### Known inconsistent state
+- Items 2, 6, 7 all untested — test before assuming they work
+- IndexedDB must be cleared by user before KTTY rig test
+- Third-person needs selfTexture loaded first (happens on enter)
+
+---
+
 ## Future Implementation — Camera Toggle (First-Person / Overhead)
 
 Add a button to switch between the current first-person raycaster view and a top-down overhead view.
@@ -215,6 +261,45 @@ Panel zones (fraction of store face):
   Door:         0.32 – 0.68
   Right poster: 0.68 – 1.00
 ```
+
+## Avatar System — State as of 2026-06-02
+
+### What works
+- Axie NFTs: SpineAvatarInstance via @axieinfinity/mixer + @esotericsoftware/spine-canvas. Looks great on mobile.
+- Static NFTs: BFS background removal → 256px bake → Uint8Array texture. 256px bump deployed this session.
+- AVATAR_TEX_SIZE = 256 (was 64, then bumped)
+
+### BFS fix deployed (avatarCache.js)
+- TOL: 85 → 40 (was eating thin limbs/accessories)
+- maxDepth: 255 → 10 (was flooding entire image from border)
+- White/black border peels now conditional on detected background color
+
+### 6-bone rig for non-Axie collections (NEW: genericSpineAvatar.js)
+Bone hierarchy: Root → Hip → Torso → Head, L-Arm, R-Arm
+- Root: world anchor bottom-centre (no visual)
+- Hip: drives lower body vertical bob ±1.4px @ 4.2Hz
+- Torso: lateral sway ±0.8px @ 2.1Hz, child of Hip
+- Head: nod ±0.025rad @ 1.6Hz, child of Torso
+- L-Arm: swing ±0.20rad @ 4.2Hz, child of Torso
+- R-Arm: opposite phase swing, child of Torso
+- BFS cleaning runs internally before slicing
+- Image sliced into 5 visual regions: lower(0-42%H), torso(16-84%W, 26-65%H), head(19-81%W, 0-30%H), lArm(0-22%W, 26-65%H), rArm(78-100%W, 26-65%H)
+- Same interface as SpineAvatarInstance: ._canvas, .pixelData, .isReady, .update(dt)
+
+### Routing (avatarCache.js loadPlayerAvatar)
+1. Axie contract → SpineAvatarInstance (mixer path)
+2. Non-Axie → GenericSpineAvatarInstance → fallback to static bake if init() fails
+3. No image → makeProceduralAvatar()
+
+### renderer.js changes
+- Imports GenericSpineAvatarInstance
+- Both instanceof checks updated to include GenericSpineAvatarInstance
+
+### NOT YET TESTED
+- KTTY rendering with 6-bone rig (need to clear IndexedDB + reload)
+- Side/back view for moving avatars (scoped, not started)
+
+---
 
 ## Next: Ronin Blockchain Games Wing
 - Research current Ronin ecosystem games

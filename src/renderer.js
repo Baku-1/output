@@ -11,6 +11,7 @@ import { RENDER_SCALE, WALL_HEIGHT, AVATAR_TEX_SIZE, AVATAR_SPRITE_SCALE, WALL_T
 import { WING_COLORS, getZone } from './map.js'
 import { NPCS, NPC_CHARACTERS } from './npcs.js'
 import { SpineAvatarInstance } from './spineAvatar.js'
+import { GenericSpineAvatarInstance } from './genericSpineAvatar.js'
 
 // ── Per-frame delta tracker — updated in renderFrame() ───────────
 let _lastRenderT = 0
@@ -224,7 +225,16 @@ function resizeRenderer() {
 }
 
 // ── Main render call ──────────────────────────────────────────
-export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId) {
+export function renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfTexture) {
+  // Camera 5 units behind player — far enough that self-sprite is a reasonable size on screen
+  const CAM_DIST = 5.0
+  const camX = posX - dirX * CAM_DIST
+  const camY = posY - dirY * CAM_DIST
+  const selfSprite = selfTexture ? { x: posX, y: posY, texture: selfTexture } : null
+  renderFrame(camX, camY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfSprite)
+}
+
+export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfSprite = null) {
   const W2 = RW, H2 = RH, px = pixels, halfH = H2 * .5
 
   // ── 1. Floor + Ceiling ──────────────────────────────────────
@@ -351,7 +361,7 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
   _lastRenderT = t
 
   // NPCs are sorted with remote players so z-buffer occlusion is correct
-  _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt)
+  _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, selfSprite)
   drawNPCSprites(posX, posY, dirX, dirY, plX, plY)
 
   // ── 4. Flush to screen ──────────────────────────────────────
@@ -369,9 +379,13 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
   ctx.imageSmoothingQuality = 'high'
   for (const sp of Object.values(remoteCache)) {
     if (now2 - sp.lastSeen > 6000) continue
-    if (sp.texture instanceof SpineAvatarInstance) {
+    if (sp.texture instanceof SpineAvatarInstance || sp.texture instanceof GenericSpineAvatarInstance) {
       _drawSpineOverlay(ctx, W2full, H2full, posX, posY, dirX, dirY, plX, plY, sp, dt)
     }
+  }
+  // Self-sprite Spine overlay for third-person
+  if (selfSprite && (selfSprite.texture instanceof SpineAvatarInstance || selfSprite.texture instanceof GenericSpineAvatarInstance)) {
+    _drawSpineOverlay(ctx, W2full, H2full, posX, posY, dirX, dirY, plX, plY, selfSprite, dt)
   }
   ctx.restore()
 
@@ -385,14 +399,20 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
 // Handles two texture sources:
 //   • Uint8Array (64×64) — static BFS-baked NFT or procedural
 //   • SpineAvatarInstance (128×128) — live animated Axie via Ghost Canvas Render
-function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt) {
+function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, selfSprite = null) {
   const W2=RW, H2=RH, now=Date.now()
   const invDet = 1.0/(plX*dirY - dirX*plY)
 
   const sprites = Object.entries(remoteCache)
     .filter(([,p]) => now-p.lastSeen<6000)
     .map(([,p])   => ({...p, dist:(p.x-posX)**2+(p.y-posY)**2}))
-    .sort((a,b)   => b.dist-a.dist)
+
+  // Inject self-sprite for third-person view
+  if (selfSprite) {
+    sprites.push({ ...selfSprite, dist: (selfSprite.x-posX)**2+(selfSprite.y-posY)**2 })
+  }
+
+  sprites.sort((a,b) => b.dist-a.dist)
 
   for (const sp of sprites) {
     const sx=sp.x-posX, sy=sp.y-posY
@@ -416,7 +436,7 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt) {
     let texSize    = AVATAR_TEX_SIZE  // 64 for static, 128 for Spine
     let hasTexture = false
 
-    if (sp.texture instanceof SpineAvatarInstance) {
+    if (sp.texture instanceof SpineAvatarInstance || sp.texture instanceof GenericSpineAvatarInstance) {
       // High-quality drawImage overlay handled in _drawSpineOverlay after pixel flush.
       // Skip pixel-sampling entirely; procedural silhouette omitted while loading.
       continue
@@ -672,7 +692,7 @@ export const resolvedNPCs = NPCS.map(npc => ({
 export function drawNPCSprites(posX, posY, dirX, dirY, plX, plY) {
   const W2 = RW, H2 = RH
   const invDet = 1.0 / (plX * dirY - dirX * plY)
-  const S = AVATAR_TEX_SIZE   // 64
+  const S = 64   // NPC textures are always baked at 64×64 regardless of AVATAR_TEX_SIZE
 
   const sorted = resolvedNPCs
     .map(n => ({ ...n, dist: (n.x-posX)**2 + (n.y-posY)**2 }))

@@ -20,6 +20,7 @@
 import { IDB_DB_NAME, IDB_DB_VERSION, IDB_STORE_NAME, AVATAR_TEX_SIZE, AVATAR_CACHE_TTL } from './config.js'
 import { loadNFTImage, loadImageUrl, isAxieAvatarUrl, axieImageCandidates } from './nftService.js'
 import { SpineAvatarInstance, AXIE_CONTRACT } from './spineAvatar.js'
+import { GenericSpineAvatarInstance } from './genericSpineAvatar.js'
 
 // ── Sky Mavis GraphQL — fetch Axie genes by tokenId ─────────────
 // Returns the genes hex string, or null if unavailable.
@@ -189,18 +190,32 @@ function _removeAxieBackground(data, S) {
 }
 
 // ── Background removal — BFS flood fill from corners ─────────
+// TOL: Manhattan-distance tolerance across R+G+B channels.
+// 40 ≈ ~13 per channel — catches near-uniform backgrounds without
+// eating light fur / accessories / thin limbs (was 85, too aggressive).
+// MAX_BG_DEPTH: limits BFS to a shallow border strip so it can't
+// tunnel through a connected path all the way into the character.
 function _removeBackground(data, S, isAxie = false) {
-  const TOL = 85
-  const bgColors = _borderBgColors(data, S, 2)
+  const TOL          = 40
+  const MAX_BG_DEPTH = 10   // pixels inward the BFS may travel
+  const bgColors     = _borderBgColors(data, S, 2)
 
   for (const [bgR, bgG, bgB] of bgColors) {
     const colorMatch = (r, g, b) =>
       Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB) <= TOL
-    _peelBorderConnected(data, S, colorMatch)
-  }
+    _peelBorderConnected(data, S, colorMatch, MAX_BG_DEPTH)
 
-  _peelBorderConnected(data, S, _isNearBlack)
-  _peelBorderConnected(data, S, _isNearWhite)
+    // Only peel near-white pixels if the detected background IS near-white,
+    // and only near-black pixels if the background IS near-black.
+    // Previously these ran unconditionally, eating white fur / dark outlines
+    // on characters whose edge pixels happened to match.
+    if (_isNearWhite(bgR, bgG, bgB)) {
+      _peelBorderConnected(data, S, _isNearWhite, MAX_BG_DEPTH)
+    }
+    if (_isNearBlack(bgR, bgG, bgB)) {
+      _peelBorderConnected(data, S, _isNearBlack, MAX_BG_DEPTH)
+    }
+  }
 }
 
 function _borderBgColors(data, S, count) {
@@ -385,9 +400,15 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null)
       return cb(tex)
     }
 
-    // ── Non-Axie NFT: existing BFS background-removal bake ──────────────────
+    // ── Non-Axie NFT: 6-bone GenericSpineAvatarInstance ─────────────────────
     const img = await loadNFTImage(storedUrl, hint)
     if (!img) return cb(makeProceduralAvatar(address))
+
+    const inst = new GenericSpineAvatarInstance()
+    await inst.init(img)
+    if (inst.isReady) return cb(inst)
+
+    // Spine init failed — fall back to static BFS bake
     const tex = await avatarCache.set(address, img, false)
     return cb(tex)
   }

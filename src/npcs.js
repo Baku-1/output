@@ -47,12 +47,12 @@ export const NPC_CHARACTERS = {
 
 export const NPCS = [
 
-  // Rebo #1 — Lobby post (left/west side)
+  // Rebo #1 — Lobby post (left/west side, y:72-78 = LOBBY zone)
   {
     id:          'rebo-lobby',
     characterId: 'rebo',
     x:           16.0,
-    y:           53.0,
+    y:           75.0,
   },
 
   // ── Future placements (uncomment to deploy) ────────────────

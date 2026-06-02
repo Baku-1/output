@@ -25,8 +25,9 @@ export const MAVIS_NFT_API    = 'https://api-gateway.skymavis.com/v2/collections
 export const MORALIS_API_KEY  = import.meta.env.VITE_MORALIS_API_KEY
 export const MORALIS_CHAIN    = '0x7e4'   // Ronin mainnet chain ID in hex
 
-// ── Anthropic AI Guide ─────────────────────────────────────────
-export const ANTHROPIC_MODEL  = 'claude-sonnet-4-5'
+// ── Ollama (local LLM — guide + NPC chat) ─────────────────────
+export const OLLAMA_URL       = import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434'
+export const OLLAMA_MODEL     = import.meta.env.VITE_OLLAMA_MODEL || 'llama3.2'
 
 // ── Renderer ──────────────────────────────────────────────────
 export const RENDER_SCALE     = 0.70   // internal resolution (bump for sharpness)

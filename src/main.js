@@ -5,18 +5,20 @@
 import { avatarCache, loadPlayerAvatar } from './avatarCache.js'
 import { showAvatarPicker, setupPickerSkip } from './avatarPicker.js'
 import { initMultiplayer, broadcastPosition, interpolatePlayers, remoteCache, onStoreEntry, broadcastStoreEntry } from './multiplayer.js'
-import { initRenderer, renderFrame, renderBirdsEye, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
+import { initRenderer, renderFrame, renderThirdPerson, renderBirdsEye, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
 import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
 import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, getZone } from './map.js'
-import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE } from './config.js'
+import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE, OLLAMA_URL, OLLAMA_MODEL } from './config.js'
 
 // ── Camera state ──────────────────────────────────────────────
 let posX=21.5, posY=53.5, dirX=0, dirY=-1
 let plX=FOV_PLANE, plY=0
 
 // ── Camera mode ───────────────────────────────────────────────
-let isBirdsEye = false
+// viewMode: 'first' | 'third' | 'overhead'
+let viewMode = 'first'
+let selfTexture = null   // player's own avatar — loaded on enter, used for 3rd-person sprite
 
 // ── Game state ────────────────────────────────────────────────
 let running   = false
@@ -34,9 +36,10 @@ initRenderer(canvas)
 
 // ── Camera toggle ─────────────────────────────────────────────
 const camToggleBtn = document.getElementById('cam-toggle')
+const VIEW_LABELS = { first: '👁 1ST', third: '🎮 3RD', overhead: '🗺 TOP' }
 camToggleBtn.addEventListener('click', () => {
-  isBirdsEye = !isBirdsEye
-  camToggleBtn.textContent = isBirdsEye ? '🗺 3RD' : '👁 1ST'
+  viewMode = viewMode === 'first' ? 'third' : viewMode === 'third' ? 'overhead' : 'first'
+  camToggleBtn.textContent = VIEW_LABELS[viewMode]
 })
 
 // ═══════════════════════════════════════════════════════════════
@@ -109,8 +112,8 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
     const address = getAddress()
     if (address) {
       initMultiplayer(address)
-      // Load own avatar (self-preview — optional, for future name tag feature)
-      loadPlayerAvatar(address, () => {})
+      // Load own avatar — stored for 3rd-person self-sprite
+      loadPlayerAvatar(address, tex => { selfTexture = tex })
     }
 
     // Wire store-entry events from other players
@@ -247,8 +250,11 @@ function loop(ts) {
 
   const anyPanelOpen = panelOpen() || npcDialogueOpen?.()
   if (running && !anyPanelOpen) update(dt)
-  if (isBirdsEye) {
+  if (viewMode === 'overhead') {
     renderBirdsEye(posX, posY, dirX, dirY, remoteCache)
+  } else if (viewMode === 'third') {
+    renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStore, selfTexture)
+    updateStoreOverlays(canvas.getContext('2d'), posX, posY, dirX, dirY, plX, plY, anyPanelOpen ? new Set() : nearbyStores, canvas.width, canvas.height, t)
   } else {
     renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStore)
     updateStoreOverlays(canvas.getContext('2d'), posX, posY, dirX, dirY, plX, plY, anyPanelOpen ? new Set() : nearbyStores, canvas.width, canvas.height, t)
@@ -305,18 +311,17 @@ async function sendNPCMessage() {
   npcLoad = true
   const ld = addNPCMsg('…', 'ld')
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 200,
-        system: activeNPC.systemPrompt,
-        messages: npcHistories[activeNPC.id],
+        model: OLLAMA_MODEL,
+        stream: false,
+        messages: [{ role:'system', content: activeNPC.systemPrompt }, ...npcHistories[activeNPC.id]],
       })
     })
     const d = await res.json()
-    const reply = d.content?.find(b => b.type==='text')?.text || '...'
+    const reply = d.message?.content || '...'
     ld.remove(); addNPCMsg(reply, 'bot')
     npcHistories[activeNPC.id].push({ role: 'assistant', content: reply })
   } catch { ld.remove(); addNPCMsg('Radio static. Try again.', 'bot') }
@@ -381,56 +386,5 @@ function closeStore() { document.getElementById('sp').classList.remove('on') }
 document.getElementById('spx').addEventListener('click', closeStore)
 document.getElementById('sp').addEventListener('click', function(e) { if (e.target===this) closeStore() })
 
-// ═══════════════════════════════════════════════════════════════
-// AI GUIDE
-// ═══════════════════════════════════════════════════════════════
-// NOTE: In production, proxy this through your own backend so the
-// Anthropic API key is never exposed in client-side code.
-const GUIDE_SYS = `You are the guide inside The Outlet — the world's first WebZone game mall. A 3D digital environment where visitors roam storefronts for Web3 and Web2 games. Built with a DDA raycaster and Supabase Realtime multiplayer.
-
-Mall layout:
-- LOBBY → MAIN HALL (Decentraland, Splinterlands) → FOOD COURT → three wings
-- BATTLE WING (north): Axie Infinity, Gods Unchained
-- RPG WING (west): Illuvium, Big Time
-- STRATEGY WING (east): The Sandbox, Star Atlas
-
-Controls: W/S=move, A/D=strafe, Q/E=turn, mouse look, F=enter store near you.
-2-3 sentences max. Help visitors find the right game for their taste.`
-
-let gHist=[], gLoad=false
-
-async function sendGuide() {
-  const inp=document.getElementById('gi'), msg=inp.value.trim()
-  if (!msg || gLoad) return
-  inp.value = ''
-  addGM(msg, 'usr')
-  gHist.push({ role:'user', content:msg })
-  gLoad = true
-  const ld = addGM('…', 'ld')
-  try {
-    // TODO: replace direct API call with your proxied backend route
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, system:GUIDE_SYS, messages:gHist })
-    })
-    const d = await res.json()
-    const reply = d.content?.find(b=>b.type==='text')?.text || 'Try again.'
-    ld.remove(); addGM(reply, 'bot')
-    gHist.push({ role:'assistant', content:reply })
-  } catch { ld.remove(); addGM('Signal lost. Try again.', 'bot') }
-  gLoad = false
-}
-
-function addGM(text, cls) {
-  const el = document.createElement('div')
-  el.className = `gm ${cls}`; el.textContent = text
-  const msgs = document.getElementById('gmsgs')
-  msgs.appendChild(el); msgs.scrollTop = msgs.scrollHeight
-  return el
-}
-
-document.getElementById('gsend').addEventListener('click', sendGuide)
-document.getElementById('gi').addEventListener('keydown', e => { if (e.key==='Enter') sendGuide() })
 document.getElementById('npc-send').addEventListener('click', sendNPCMessage)
 document.getElementById('npc-input').addEventListener('keydown', e => { if (e.key==='Enter') sendNPCMessage() })
