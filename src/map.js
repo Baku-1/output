@@ -124,8 +124,8 @@ export const CELL_STORE = {
 }
 
 // ── Map dimensions ────────────────────────────────────────────
-export const MAP_W = 50
-export const MAP_H = 80
+export const MAP_W = 512
+export const MAP_H = 512
 
 export const CX1 = 19   // main corridor west x
 export const CX2 = 24   // main corridor east x
@@ -166,6 +166,10 @@ carve(CX1, 18, CX2, 19)     // doorway x:19-24, y:18-19
 
 // ── North stub — future expansion point ──────────────────────
 carve(CX1, 1, CX2,  2)      // stub x:19-24, y:1-2
+
+// ── East Lobby — attached to east end of Strategy Wing ────────
+// Strategy Wing (x:33-42, y:48-52) opens into this lobby at x=42/43, y:48-52
+carve(43, 44, 64, 56)        // EAST LOBBY             x:43-64, y:44-56 (22w)
 
 // ── Original store placements ─────────────────────────────────
 ;[58,59,60,61].forEach(y => { place(18, y, 16); place(25, y, 17) })   // Main Hall
@@ -230,7 +234,9 @@ export function getZone(x, y) {
   if (y > 71)                                                   return { id: 'LOBBY',         label: 'LOBBY' }
   if (y >= 58 && x >= CX1-1 && x <= CX2+1)                    return { id: 'MAIN HALL',     label: 'MAIN HALL' }
   if (y >= 48 && y <= 52 && x <= 10)                           return { id: 'RPG WING',      label: '⚔  RPG WING  · Adventure' }
-  if (y >= 48 && y <= 52 && x >= 33)                           return { id: 'STRATEGY WING', label: '🏗  STRATEGY WING  · Build' }
+  if (y >= 48 && y <= 52 && x >= 33 && x <= 42)                return { id: 'STRATEGY WING', label: '🏗  STRATEGY WING  · Build' }
+  if (x >= 45 && x <= 66 && y >= 58 && y <= 69)               return { id: 'EAST LOBBY',    label: '🌐  EAST LOBBY' }
+  if (x >= 44 && x <= 54 && y >= 20 && y <= 57)               return { id: 'EAST HALL',     label: '🌐  EAST HALL' }
   return { id: 'THE OUTLET', label: 'THE OUTLET' }
 }
 
@@ -241,16 +247,16 @@ export function getZone(x, y) {
 // size  = number of cells across the full facade
 export const STORE_GEOMETRY = {
   // Main Hall
-  decentral: { ax:18, ay:58, dir:'v', size:4 },
-  splinter:  { ax:25, ay:58, dir:'v', size:4 },
+  pixels:    { ax:18, ay:58, dir:'v', size:4 },
+  lumiterra: { ax:25, ay:58, dir:'v', size:4 },
   // RPG Wing
-  illuvium:  { ax: 3, ay:47, dir:'h', size:4 },
-  bigtime:   { ax: 3, ay:53, dir:'h', size:4 },
+  apeiron:     { ax: 3, ay:47, dir:'h', size:4 },
+  lastodyssey: { ax: 3, ay:53, dir:'h', size:4 },
   // Strategy Wing
-  sandbox:   { ax:35, ay:47, dir:'h', size:4 },
-  staratlas: { ax:35, ay:53, dir:'h', size:4 },
+  kaidro:    { ax:35, ay:47, dir:'h', size:4 },
+  machines:  { ax:35, ay:53, dir:'h', size:4 },
   // Food Court
-  gods:      { ax:11, ay:58, dir:'h', size:4 },
+  wildforest: { ax:11, ay:58, dir:'h', size:4 },
   // Axie Hall flagships
   axie:      { ax:18, ay:30, dir:'v', size:4 },
   atia:      { ax:25, ay:30, dir:'v', size:4 },
@@ -290,4 +296,6 @@ export const WING_COLORS = {
   'AXIE PUZZLE':   '#c77dff',
   'AXIE ACTION':   '#ff4444',
   'FUTURE':        '#333333',
+  'EAST HALL':     '#00bcd4',
+  'EAST LOBBY':    '#ff9800',
 }

@@ -970,38 +970,68 @@ export function renderBirdsEye(posX, posY, dirX, dirY, remoteCache) {
   ctx.restore()
 }
 
-// ── Minimap ───────────────────────────────────────────────────
+// ── Radar Minimap ─────────────────────────────────────────────
+// Shows a 32-tile radius window centered on the player.
+// At 2px/tile the 65×65 tile window fills the 130×130 canvas exactly.
+// Scales to any map size — never iterates the full 512×512 grid.
+const RADAR_RADIUS = 32   // tiles each direction from player
+const RADAR_PX     = 2    // pixels per tile
+
 export function drawMinimap(mmCanvas, posX, posY, dirX, dirY, remoteCache) {
-  const mc=mmCanvas.getContext('2d')
-  const mw=mmCanvas.width, mh=mmCanvas.height
-  const cw=mw/MAP_W, ch=mh/MAP_H
+  const mc  = mmCanvas.getContext('2d')
+  const sz  = RADAR_RADIUS * 2 + 1          // tile window (65)
+  const dim = sz * RADAR_PX                  // canvas pixels used (130)
 
-  mc.fillStyle='rgba(0,0,8,.85)'; mc.fillRect(0,0,mw,mh)
+  // Background
+  mc.fillStyle = 'rgba(0,0,8,0.88)'
+  mc.fillRect(0, 0, mmCanvas.width, mmCanvas.height)
 
-  for(let my=0;my<MAP_H;my++) for(let mx=0;mx<MAP_W;mx++){
-    const cell=MAP[my][mx]
-    if(cell===0){
-      const zone=getZone(mx+.5,my+.5)
-      mc.fillStyle=WING_COLORS[zone.id]?WING_COLORS[zone.id]+'28':'rgba(20,20,30,.7)'
-      mc.fillRect(mx*cw,my*ch,cw,ch)
-    } else if(cell===CELL.WALL){
-      mc.fillStyle='rgba(175,180,195,.85)'; mc.fillRect(mx*cw,my*ch,cw,ch)
-    } else {
-      const sid=CELL_STORE[cell]
-      if(sid){mc.fillStyle=STORES[sid].hex; mc.fillRect(mx*cw,my*ch,cw,ch)}
+  const originTX = Math.floor(posX) - RADAR_RADIUS   // top-left tile x
+  const originTY = Math.floor(posY) - RADAR_RADIUS   // top-left tile y
+
+  for (let ry = 0; ry < sz; ry++) {
+    const my = originTY + ry
+    if (my < 0 || my >= MAP_H) continue
+    for (let rx = 0; rx < sz; rx++) {
+      const mx = originTX + rx
+      if (mx < 0 || mx >= MAP_W) continue
+      const cell = MAP[my][mx]
+      const sx = rx * RADAR_PX, sy = ry * RADAR_PX
+
+      if (cell === 0) {
+        const zone = getZone(mx + 0.5, my + 0.5)
+        mc.fillStyle = WING_COLORS[zone.id] ? WING_COLORS[zone.id] + '38' : 'rgba(20,20,32,0.75)'
+      } else if (cell === CELL.WALL) {
+        mc.fillStyle = 'rgba(175,180,195,0.85)'
+      } else {
+        const sid = CELL_STORE[cell]
+        mc.fillStyle = sid && STORES[sid] ? STORES[sid].hex : 'rgba(175,180,195,0.85)'
+      }
+      mc.fillRect(sx, sy, RADAR_PX, RADAR_PX)
     }
   }
 
-  const px=posX*cw, py=posY*ch
-  mc.fillStyle='#fff'; mc.beginPath(); mc.arc(px,py,2.4,0,Math.PI*2); mc.fill()
-  mc.strokeStyle='#00e5ff'; mc.lineWidth=1.5
-  mc.beginPath(); mc.moveTo(px,py); mc.lineTo(px+dirX*8,py+dirY*8); mc.stroke()
+  // Player dot + direction arrow — always center of radar
+  const cx = RADAR_RADIUS * RADAR_PX, cy = RADAR_RADIUS * RADAR_PX
+  mc.fillStyle = '#ffffff'
+  mc.beginPath(); mc.arc(cx, cy, 2.5, 0, Math.PI * 2); mc.fill()
+  mc.strokeStyle = '#00e5ff'; mc.lineWidth = 1.5
+  mc.beginPath(); mc.moveTo(cx, cy)
+  mc.lineTo(cx + dirX * 7, cy + dirY * 7); mc.stroke()
 
-  const now=Date.now()
-  for(const p of Object.values(remoteCache)){
-    if(now-p.lastSeen>6000) continue
-    const [r,g,b]=p.color
-    mc.fillStyle=`rgb(${r},${g},${b})`
-    mc.beginPath(); mc.arc(p.x*cw,p.y*ch,2.4,0,Math.PI*2); mc.fill()
+  // Remote players
+  const now = Date.now()
+  for (const p of Object.values(remoteCache)) {
+    if (now - p.lastSeen > 6000) continue
+    const rx = (p.x - originTX) * RADAR_PX
+    const ry = (p.y - originTY) * RADAR_PX
+    if (rx < 0 || rx > dim || ry < 0 || ry > dim) continue
+    const [r, g, b] = p.color
+    mc.fillStyle = `rgb(${r},${g},${b})`
+    mc.beginPath(); mc.arc(rx, ry, 2.5, 0, Math.PI * 2); mc.fill()
   }
+
+  // Thin border
+  mc.strokeStyle = 'rgba(0,229,255,0.25)'; mc.lineWidth = 1
+  mc.strokeRect(0.5, 0.5, dim - 1, dim - 1)
 }

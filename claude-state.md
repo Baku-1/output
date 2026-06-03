@@ -387,10 +387,15 @@ public/
 
 ## Map geometry reference — UPDATED 2026-05-31
 
-MAP_W=50, MAP_H=80, CX1=19, CX2=24
+MAP_W=512, MAP_H=512, CX1=19, CX2=24
 
 ```
-Layout (y=0 top, y=79 bottom):
+Layout (y=0 top, y=511 bottom):
+
+  ── East Wing Expansion (2026-06-02) ──
+  y:20-24 x:44-54  EAST CONNECTION  (opens bottom of Puzzle Wing east into East Hall)
+  y:25-57 x:45-54  EAST HALL        (10w standard, runs alongside Axie Hall + Food Court level)
+  y:58-69 x:45-66  EAST LOBBY       (22w standard court — ready for chain expansion)
 
   y:1-2   x:19-24  FUTURE EXPANSION STUB
   y:3-17  x:11-32  ACTION WING   (Sky Smash, AIW, Tri-Fields, Across Lunacia, Tacticards)
@@ -439,10 +444,41 @@ STORE_GEOMETRY:
   acrosslunacia: { ax:25, ay:18, dir:'h', size:2 }  — Action south wall (right bank)
   tacticards:    { ax:28, ay:18, dir:'h', size:2 }
 
-Panel zones (fraction of store face):
-  Left poster:  0.00 – 0.32
-  Door:         0.32 – 0.68
-  Right poster: 0.68 – 1.00
+Panel zones (fraction of store face) — 4-PANEL LAYOUT:
+  L1 (0.00–0.20) | L2 (0.20–0.40) | DOOR (0.40–0.60) | R1 (0.60–0.80) | R2 (0.80–1.00)
+  poster_left image spans L1+L2 (0.00–0.40). poster_right spans R1+R2 (0.60–1.00).
+  Thin divider between L1/L2 and R1/R2 is baked in makeStoreTex() only — not an overlay split.
+  Key art rotates every 15 seconds. Never revert to 3-panel (0.00–0.32 / 0.32–0.68 / 0.68–1.00).
+
+VERIFIED STORE_GEOMETRY (current, matches tile placements and STORES keys) — 2026-06-02:
+  Ronin flagship stores:
+    pixels:      { ax:18, ay:58, dir:'v', size:4 }  — Main Hall west wall
+    lumiterra:   { ax:25, ay:58, dir:'v', size:4 }  — Main Hall east wall
+    wildforest:  { ax:11, ay:58, dir:'h', size:4 }  — Food Court south wall
+    apeiron:     { ax: 3, ay:47, dir:'h', size:4 }  — RPG Wing north wall
+    lastodyssey: { ax: 3, ay:53, dir:'h', size:4 }  — RPG Wing south wall
+    kaidro:      { ax:35, ay:47, dir:'h', size:4 }  — Strategy Wing north wall
+    machines:    { ax:35, ay:53, dir:'h', size:4 }  — Strategy Wing south wall
+
+  Axie Hall (untouchable):
+    axie:        { ax:18, ay:30, dir:'v', size:4 }  — Origins, west wall
+    atia:        { ax:25, ay:30, dir:'v', size:4 }  — Atia's Legacy, east wall
+
+  Axie Game-Verse (untouchable):
+    infinitysoccer: { ax:0,  ay: 8, dir:'v', size:4 }
+    tinydrift:      { ax:0,  ay:12, dir:'v', size:4 }
+    lunaciacup:     { ax:1,  ay: 7, dir:'h', size:4 }
+    axieball:       { ax:5,  ay: 7, dir:'h', size:4 }
+    axiequest:      { ax:45, ay: 8, dir:'v', size:4 }
+    puzzlechamps:   { ax:45, ay:12, dir:'v', size:4 }
+    culinarywars:   { ax:45, ay:16, dir:'v', size:4 }
+    triforce:       { ax:34, ay: 7, dir:'h', size:4 }
+    denofmyst:      { ax:38, ay: 7, dir:'h', size:4 }
+    skysmash:       { ax:11, ay:18, dir:'h', size:4 }
+    axiewar:        { ax:15, ay:18, dir:'h', size:4 }
+    trifields:      { ax:25, ay:18, dir:'h', size:4 }
+    tacticards:     { ax:10, ay: 3, dir:'v', size:4 }
+    acrosslunacia:  { ax:33, ay: 3, dir:'v', size:4 }
 ```
 
 ## Avatar System — State as of 2026-06-02
