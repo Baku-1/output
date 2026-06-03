@@ -232,6 +232,33 @@ Also: some store panel descriptions (`s.desc`, `s.players`, `s.cost`) may be pla
 
 ---
 
+## Future Implementation — Direct Asset Trading Hubs
+
+Players can stand next to each other's sprites in the world, click/tap a peer's avatar, and immediately pull up a direct peer-to-peer trading interface (using protocols like Seaport) overlaid on the canvas — allowing users to safely swap assets right in the social lounge without leaving The Outlet.
+
+**Implementation notes:**
+- Peer sprite interaction: extend the existing NPC proximity system to remote players. When a player clicks/taps a remote avatar within interact range, open a trade panel instead of NPC dialogue.
+- Trade panel: renders as an overlay (same layer as store panels) displaying the peer's wallet address, their visible NFT holdings (via Sky Mavis API), and a "Propose Trade" CTA.
+- Seaport integration: construct a Seaport order client-side (offer + consideration), sign with the player's Ronin wallet, and present the signed order link/QR to the peer. The peer countersigns to execute — no intermediary.
+- Billboard component: each player's avatar position in the world functions as their "billboard" — their NFTs are visible in the trade panel when another player clicks them.
+- Safety: Seaport is non-custodial. Neither party surrenders assets until both sign. The trade panel can show a preview of what's being offered and received before any signing.
+- Multiplayer dependency: requires Ably channel to relay trade proposals between players in real time (`trade_offer` event with signed order payload).
+
+---
+
+## Future Implementation — Interactive Token Gates
+
+Since the DDA map relies on a strict 2D array matrix, specific grid coordinates can be flagged as restricted boundaries. When a player moves near a flagged cell, the client checks their wallet's NFT array. If they possess a specific NFT contract address, the tile value toggles from a solid wall (1) to an open space (0) — creating instant, serverless token-gated clubs or lounges.
+
+**Implementation notes:**
+- Define a `TOKEN_GATES` map: `{ cellCoord: contractAddress }` — no server required
+- On proximity, call `getNFTs(playerAddress)` and check contract membership
+- If owned: `MAP[y][x] = 0` (open). If not: `MAP[y][x] = 1` (wall). Toggle is client-local.
+- Gate cells can have a special tile value (e.g., 200+) so the renderer can draw a distinct "locked door" texture
+- Multiplayer: gate state is per-client — player A can walk through if they own the NFT, player B sees a wall if they don't. Each client resolves its own gate state.
+
+---
+
 ## Future Implementation — Camera Toggle (First-Person / Overhead)
 
 Add a button to switch between the current first-person raycaster view and a top-down overhead view.

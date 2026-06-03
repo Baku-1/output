@@ -3,6 +3,39 @@ body{background:#000;overflow:hidden;font-family:'Rajdhani',sans-serif;color:#ff
 #c{position:fixed;top:0;left:0;z-index:1}
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.022) 3px,rgba(0,0,0,0.022) 4px);pointer-events:none;z-index:5}
 
+/* ── TOUCH CONTROLS ── */
+#touch-overlay{position:fixed;inset:0;z-index:20;pointer-events:none}
+#joy-base{
+  position:fixed;bottom:90px;left:28px;
+  width:110px;height:110px;border-radius:50%;
+  border:2px solid rgba(0,229,255,0.35);
+  background:rgba(0,0,0,0.25);
+  opacity:0.4;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity 0.15s
+}
+#joy-knob{
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(0,229,255,0.55);
+  box-shadow:0 0 12px rgba(0,229,255,0.4);
+  pointer-events:none
+}
+#touch-interact{
+  position:fixed;bottom:100px;right:28px;
+  width:72px;height:72px;border-radius:50%;
+  border:2px solid rgba(0,229,255,0.6);
+  background:rgba(0,0,0,0.55);
+  color:#00e5ff;font-family:'Orbitron',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;cursor:pointer;
+  pointer-events:auto;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity 0.2s,background 0.2s;
+  box-shadow:0 0 18px rgba(0,229,255,0.25);
+  -webkit-tap-highlight-color:transparent
+}
+#touch-interact:active{background:rgba(0,229,255,0.25)}
+
 /* ── SPLASH ── */
 #splash{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;transition:opacity 1s ease}
 #splash.gone{opacity:0;pointer-events:none}
