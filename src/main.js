@@ -10,6 +10,7 @@ import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
 import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
 import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, getZone } from './map.js'
 import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE, GROQ_API_KEY, GROQ_MODEL } from './config.js'
+import { initTouch, isTouchDevice, touchMoveX, touchMoveY, consumeRotation, setInteractCallback, setInteractVisible } from './touch.js'
 
 // ── Camera state ──────────────────────────────────────────────
 let posX=21.5, posY=53.5, dirX=0, dirY=-1
@@ -34,6 +35,7 @@ const canvas = document.getElementById('c')
 const canvasCtx = canvas.getContext('2d')   // cached — never call getContext in loop
 const mmCanvas = document.getElementById('mc')
 initRenderer(canvas)
+initTouch()
 
 // ── Camera toggle ─────────────────────────────────────────────
 const camToggleBtn = document.getElementById('cam-toggle')
@@ -136,13 +138,17 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
 // ═══════════════════════════════════════════════════════════════
 // INPUT
 // ═══════════════════════════════════════════════════════════════
+function doInteract() {
+  if (panelOpen()) return
+  if (nearNPC)        openNPCDialogue(nearNPC)
+  else if (nearStore) openStore(nearStore)
+}
+setInteractCallback(doInteract)
+
 document.addEventListener('keydown', e => {
   keys[e.code] = true
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault()
-  if ((e.code === 'KeyF' || e.code === 'Space') && !panelOpen()) {
-    if (nearNPC)   openNPCDialogue(nearNPC)
-    else if (nearStore) openStore(nearStore)
-  }
+  if (e.code === 'KeyF' || e.code === 'Space') doInteract()
   if (e.code === 'Escape') { closeStore(); closeNPCDialogue() }
 })
 document.addEventListener('keyup', e => { keys[e.code] = false })
@@ -172,17 +178,24 @@ function walkable(x, y) {
 // UPDATE
 // ═══════════════════════════════════════════════════════════════
 function update(dt) {
-  // Turn
+  // Turn — keyboard + touch rotation
   if (keys['KeyQ'] || keys['ArrowLeft'])  rotateCamera(-TURN_SPEED * dt)
   if (keys['KeyE'] || keys['ArrowRight']) rotateCamera( TURN_SPEED * dt)
+  const touchRot = consumeRotation()
+  if (touchRot !== 0) rotateCamera(touchRot)
 
-  // Move
+  // Move — keyboard + touch joystick
   let mx=0, my=0
   const s=plX/FOV_PLANE, sy=plY/FOV_PLANE
   if (keys['KeyW']||keys['ArrowUp'])   { mx+=dirX; my+=dirY }
   if (keys['KeyS']||keys['ArrowDown']) { mx-=dirX; my-=dirY }
   if (keys['KeyA']) { mx-=s; my-=sy }
   if (keys['KeyD']) { mx+=s; my+=sy }
+  // Touch joystick: touchMoveY<0 = up = forward, touchMoveX = strafe
+  if (touchMoveX || touchMoveY) {
+    mx += dirX * (-touchMoveY) + s  * touchMoveX
+    my += dirY * (-touchMoveY) + sy * touchMoveX
+  }
 
   const ml = Math.sqrt(mx*mx + my*my)
   if (ml > 0) {
@@ -217,6 +230,7 @@ function update(dt) {
     const toast = document.getElementById('toast')
     if (found) { document.getElementById('tn').textContent = STORES[found].name; toast.classList.add('on') }
     else toast.classList.remove('on')
+    setInteractVisible(!!found || !!nearNPC, found ? 'ENTER' : nearNPC ? 'TALK' : '')
   }
 
   // NPC proximity
@@ -234,6 +248,7 @@ function update(dt) {
     } else if (!nearStore) {
       toast.classList.remove('on')
     }
+    setInteractVisible(!!nearNPC || !!nearStore, nearNPC ? 'TALK' : nearStore ? 'ENTER' : '')
   }
 
   // Zone HUD

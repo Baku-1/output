@@ -392,10 +392,8 @@ MAP_W=512, MAP_H=512, CX1=19, CX2=24
 ```
 Layout (y=0 top, y=511 bottom):
 
-  ── East Wing Expansion (2026-06-02) ──
-  y:20-24 x:44-54  EAST CONNECTION  (opens bottom of Puzzle Wing east into East Hall)
-  y:25-57 x:45-54  EAST HALL        (10w standard, runs alongside Axie Hall + Food Court level)
-  y:58-69 x:45-66  EAST LOBBY       (22w standard court — ready for chain expansion)
+  ── East Lobby (2026-06-02) ──
+  y:44-56 x:43-64  EAST LOBBY  (22w court, attaches directly to Strategy Wing east end at x=42/43)
 
   y:1-2   x:19-24  FUTURE EXPANSION STUB
   y:3-17  x:11-32  ACTION WING   (Sky Smash, AIW, Tri-Fields, Across Lunacia, Tacticards)

@@ -235,8 +235,7 @@ export function getZone(x, y) {
   if (y >= 58 && x >= CX1-1 && x <= CX2+1)                    return { id: 'MAIN HALL',     label: 'MAIN HALL' }
   if (y >= 48 && y <= 52 && x <= 10)                           return { id: 'RPG WING',      label: '⚔  RPG WING  · Adventure' }
   if (y >= 48 && y <= 52 && x >= 33 && x <= 42)                return { id: 'STRATEGY WING', label: '🏗  STRATEGY WING  · Build' }
-  if (x >= 45 && x <= 66 && y >= 58 && y <= 69)               return { id: 'EAST LOBBY',    label: '🌐  EAST LOBBY' }
-  if (x >= 44 && x <= 54 && y >= 20 && y <= 57)               return { id: 'EAST HALL',     label: '🌐  EAST HALL' }
+  if (x >= 43 && x <= 64 && y >= 44 && y <= 56)               return { id: 'EAST LOBBY',    label: '🌐  EAST LOBBY' }
   return { id: 'THE OUTLET', label: 'THE OUTLET' }
 }
 
@@ -296,6 +295,5 @@ export const WING_COLORS = {
   'AXIE PUZZLE':   '#c77dff',
   'AXIE ACTION':   '#ff4444',
   'FUTURE':        '#333333',
-  'EAST HALL':     '#00bcd4',
   'EAST LOBBY':    '#ff9800',
 }
