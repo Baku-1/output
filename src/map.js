@@ -5,15 +5,15 @@
 
 // ── Store data ────────────────────────────────────────────────
 export const STORES = {
-  // ── Original stores ───────────────────────────────────────────
-  axie:      { name:'Axie Infinity: Origins', wing:'AXIE HALL',    genre:'Battle / Collect',  chain:'Ronin',       players:'14,200', cost:'Free',   hex:'#ff6b35', desc:"The current flagship of the Axie universe. Build a team of NFT Axies, master a deep card-battle system, and earn SLP and AXS tokens in ranked PvP play.",          url:'https://axieinfinity.com', assets: { poster_left:'/stores/axie/key_art_1.jpg', poster_right:'/stores/axie/key_art_2.jpg', logo:'/stores/axie/logo.jpg', banner:'/stores/axie/banner.jpg' } },
-  gods:      { name:'Gods Unchained',         wing:'FOOD COURT',   genre:'Card / Strategy',   chain:'Immutable X', players:'9,800',  cost:'Free',   hex:'#ffc42a', desc:"Free tactical card game — your cards are NFTs you truly own. Build powerful decks, earn GODS tokens.",                                                                  url:'https://godsunchained.com' },
-  illuvium:  { name:'Illuvium',               wing:'RPG WING',     genre:'RPG / Auto-Battle', chain:'Immutable X', players:'6,100',  cost:'$0-50',  hex:'#9b5fff', desc:"AAA open-world RPG on blockchain. Explore alien landscapes, capture Illuvials, battle in arenas. Zero gas fees.",                                                        url:'https://illuvium.io' },
-  bigtime:   { name:'Big Time',               wing:'RPG WING',     genre:'Action RPG',        chain:'Multi-chain', players:'11,500', cost:'Free',   hex:'#00ff88', desc:"Fast-paced co-op RPG through time and space. Earn BIGTIME tokens, collect rare NFT cosmetics.",                                                                           url:'https://bigtime.gg' },
-  sandbox:   { name:'The Sandbox',            wing:'STRATEGY WING',genre:'Build / Create',    chain:'Ethereum',    players:'8,400',  cost:'Free',   hex:'#00d4ff', desc:"Virtual world where you build, own, and monetize gaming experiences. Trade LAND, earn SAND tokens.",                                                                     url:'https://sandbox.game' },
-  staratlas: { name:'Star Atlas',             wing:'STRATEGY WING',genre:'Space / Strategy',  chain:'Solana',      players:'3,200',  cost:'$5-100', hex:'#ff3366', desc:"Grand strategy in Unreal Engine 5 on Solana. Own ships, planets, and crew. Player-driven galactic economy.",                                                             url:'https://staratlas.com' },
-  decentral: { name:'Decentraland',           wing:'MAIN HALL',    genre:'Virtual World',     chain:'Ethereum',    players:'7,600',  cost:'Free',   hex:'#f72585', desc:"Decentralized virtual reality platform. Create, explore, and trade in a world entirely owned by its users.",                                                             url:'https://decentraland.org' },
-  splinter:  { name:'Splinterlands',          wing:'MAIN HALL',    genre:'Card / Battle',     chain:'Hive',        players:'5,300',  cost:'$10',    hex:'#4cc9f0', desc:"Digital collectible card game on blockchain. Battle in ranked matches, earn DEC tokens, trade freely.",                                                                   url:'https://splinterlands.com' },
+  // ── Ronin flagship stores ─────────────────────────────────────
+  axie:      { name:'Axie Infinity: Origins', wing:'AXIE HALL',    genre:'Battle / Collect',  chain:'Ronin', players:'14,200', cost:'Free',   hex:'#ff6b35', desc:"The flagship of the Axie universe. Build a team of NFT Axies, master a deep card-battle system, and earn SLP and AXS tokens in ranked PvP play.", url:'https://axieinfinity.com', assets: { poster_left:'/stores/axie/key_art_1.jpg', poster_right:'/stores/axie/key_art_2.jpg', logo:'/stores/axie/logo.jpg', banner:'/stores/axie/banner.jpg' } },
+  pixels:    { name:'Pixels',                 wing:'MAIN HALL',    genre:'RPG / Farming',     chain:'Ronin', players:'18,000', cost:'Free',   hex:'#7ed321', desc:"Farm, build, and explore in this open-world pixel RPG. Own land, grow resources, and trade in a player-driven economy on Ronin.",                  url:'https://play.pixels.xyz' },
+  lumiterra: { name:'Lumiterra',              wing:'MAIN HALL',    genre:'Action RPG',        chain:'Ronin', players:'6,800',  cost:'Free',   hex:'#f5a623', desc:"Multiplayer action RPG with survival crafting. Explore dungeons, harvest resources, and battle monsters with your NFT characters on Ronin.",         url:'https://marketplace.skymavis.com/games/lumiterra' },
+  wildforest: { name:'Wild Forest',           wing:'FOOD COURT',   genre:'RTS / Strategy',    chain:'Ronin', players:'9,200',  cost:'Free',   hex:'#2ecc71', desc:"Real-time strategy on Ronin. Build bases, command troops, and deploy powerful unit NFTs in fast-paced PvP battles. Earn WOFR tokens.",              url:'https://playwildforest.io' },
+  apeiron:   { name:'Apeiron',                wing:'RPG WING',     genre:'RPG / Roguelite',   chain:'Ronin', players:'5,100',  cost:'Free',   hex:'#8e44ad', desc:"Godgame roguelite RPG where you shape planets and command Apostles into battle. NFT planet ownership drives the Apeiron universe on Ronin.",      url:'https://apeiron.fooniemagus.com' },
+  lastodyssey:{ name:'Last Odyssey',          wing:'RPG WING',     genre:'Strategy / RPG',    chain:'Ronin', players:'3,400',  cost:'Free',   hex:'#1abc9c', desc:"Tactical strategy RPG set in a post-apocalyptic world. Command heroes, forge alliances, and compete for resources in this Ronin-native title.",    url:'https://lastodyssey.io' },
+  kaidro:    { name:'Kaidro: Clan Battles',   wing:'STRATEGY WING',genre:'Action / Battle',   chain:'Ronin', players:'4,600',  cost:'Free',   hex:'#e74c3c', desc:"Cyberpunk mech battle game. Choose your clan, pilot your Kaidro NFT, and fight for dominance in intense real-time arena combat on Ronin.",         url:'https://marketplace.skymavis.com/games/kaidro' },
+  machines:  { name:'The Machines Arena',     wing:'STRATEGY WING',genre:'MOBA / Shooter',    chain:'Ronin', players:'7,300',  cost:'Free',   hex:'#3498db', desc:"Top-down tactical MOBA shooter. Command robots, capture objectives, and battle in team-based arenas. Fast-paced Web3 competitive gaming on Ronin.", url:'https://marketplace.skymavis.com/games/the-machines-arena' },
 
   // ── Axie Hall flagships ───────────────────────────────────────
   atia:      { name:"Atia's Legacy",          wing:'AXIE HALL',    genre:'Action RPG',        chain:'Ronin',       players:'5,600',  cost:'Free',   hex:'#a855f7', desc:"Sky Mavis newest chapter in the Axie universe. A mobile-first action RPG set in the world of Lunacia — recruit Axies, master combat, and uncover the secrets of Atia.", url:'https://hub.skymavis.com/games/atias-legacy', assets: { poster_left: ['/stores/legacy/key_art_1.jpg', '/stores/legacy/key_art_3.jpg'], poster_right: ['/stores/legacy/key_art_2.jpg', '/stores/legacy/key_art_4.jpg'], logo: '/stores/legacy/logo.jpg', banner: '/stores/legacy/banner.jpg' } },
@@ -82,9 +82,9 @@ export const STORES = {
 export const CELL = {
   FLOOR: 0,
   WALL:  1,
-  // Original stores
-  AX: 10, GO: 11, IL: 12, BT: 13,
-  SB: 14, SA: 15, DC: 16, SP: 17,
+  // Ronin flagship stores
+  AX: 10, WF: 11, AP: 12, LO: 13,
+  KD: 14, MA: 15, PX: 16, LT: 17,
   // Axie Hall flagship
   TL: 32,  // Atia's Legacy
   // Axie Game-Verse Wing — Racing & Arcade
@@ -107,10 +107,10 @@ export const CELL = {
 }
 
 export const CELL_STORE = {
-  [10]:'axie',       [11]:'gods',
-  [12]:'illuvium',   [13]:'bigtime',
-  [14]:'sandbox',    [15]:'staratlas',
-  [16]:'decentral',  [17]:'splinter',
+  [10]:'axie',        [11]:'wildforest',
+  [12]:'apeiron',     [13]:'lastodyssey',
+  [14]:'kaidro',      [15]:'machines',
+  [16]:'pixels',      [17]:'lumiterra',
   [32]:'atia',
   // Axie Game-Verse
   [18]:'infinitysoccer', [19]:'tinydrift',

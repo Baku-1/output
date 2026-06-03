@@ -39,29 +39,31 @@ MALL LAYOUT — directions from the lobby where players start:
 - ACTION WING is at the north end of the Arcade and Puzzle wings.
 
 EVERY STORE AND HOW TO FIND IT:
-- Axie Infinity Origins: in Axie Hall, west wall, halfway between Lobby and Food Court. Walk north from Lobby, look left.
-- Atia's Legacy: in Axie Hall, east wall, same area. Walk north from Lobby, look right.
-- Gods Unchained: in Food Court, south wall. Walk to Food Court, face south.
-- Illuvium: RPG Wing, north wall. From Food Court go west, look left.
-- Big Time: RPG Wing, south wall. From Food Court go west, look right.
-- The Sandbox: Strategy Wing, north wall. From Food Court go east, look left.
-- Star Atlas: Strategy Wing, south wall. From Food Court go east, look right.
-- Decentraland: Main Hall, west wall. Between Lobby and Food Court, look left.
-- Splinterlands: Main Hall, east wall. Between Lobby and Food Court, look right.
-- Infinity Soccer: Arcade Wing, west wall (north section).
-- Tiny Drift: Arcade Wing, west wall (middle section).
-- Lunacia Cup: Arcade Wing, west wall (south-middle section).
-- Axie Ball: Arcade Wing, west wall (south section).
-- Axie Quest: Puzzle Wing, east wall (north section).
-- Puzzle Champs: Puzzle Wing, east wall (upper-middle section).
-- Culinary Wars: Puzzle Wing, east wall (middle section).
-- Tri-Force: Puzzle Wing, east wall (lower-middle section).
-- Den of Mysteries: Puzzle Wing, east wall (south section).
-- Sky Smash: Action Wing, south wall (left side).
-- Axie War: Action Wing, south wall (center-left).
-- Tri-Fields: Action Wing, south wall (center).
-- Across Lunacia: Action Wing, south wall (center-right).
-- Tacticards: Action Wing, south wall (right side).
+All games here are on the Ronin blockchain. Players use their Ronin Wallet to connect.
+
+- Axie Infinity Origins: Axie Hall, west wall. Walk north from Lobby, look left. Card-battle game with NFT Axies.
+- Atia's Legacy: Axie Hall, east wall. Walk north from Lobby, look right. Mobile action RPG set in Lunacia.
+- Pixels: Main Hall, west wall. Between Lobby and Food Court, look left. Open-world farming and RPG.
+- Lumiterra: Main Hall, east wall. Between Lobby and Food Court, look right. Multiplayer action RPG with survival crafting.
+- Wild Forest: Food Court, south wall. Walk to Food Court, face south. Real-time strategy with unit NFTs.
+- Apeiron: RPG Wing, north wall. From Food Court go west, look left. Godgame roguelite RPG.
+- Last Odyssey: RPG Wing, south wall. From Food Court go west, look right. Tactical strategy RPG.
+- Kaidro Clan Battles: Strategy Wing, north wall. From Food Court go east, look left. Cyberpunk mech battle game.
+- The Machines Arena: Strategy Wing, south wall. From Food Court go east, look right. Top-down MOBA shooter.
+- Infinity Soccer: Arcade Wing, west wall (north section). 1v1 competitive soccer.
+- Tiny Drift: Arcade Wing, west wall (middle section). Kart racing with Axies.
+- Lunacia Cup: Arcade Wing, west wall (south-middle). Racing simulator.
+- Axie Ball: Arcade Wing, west wall (south section). Physics sports arcade.
+- Axie Quest: Puzzle Wing, east wall (north section). Match-3 RPG.
+- Puzzle Champions: Puzzle Wing, east wall (upper-middle). Tile-matching battle.
+- Culinary Wars: Puzzle Wing, east wall (middle). Cooking time management.
+- Tri-Force: Puzzle Wing, east wall (lower-middle). Strategy puzzle.
+- Den of Mysteries: Puzzle Wing, east wall (south section). Adventure exploration.
+- Sky Smash: Action Wing, south wall (left). Artillery turn-based.
+- Axie Infinity War: Action Wing, south wall (center-left). Multiplayer shooter.
+- Tri-Fields: Action Wing, south wall (center). Tactical grid game.
+- Across Lunacia: Action Wing, south wall (center-right). Side-scrolling platformer.
+- Tacticards: Action Wing, south wall (right). Card game deck-building.
 
 AVATAR SYSTEM: Players connect a Ronin wallet and their NFTs appear as avatars. Axie Infinity NFTs use full animated Spine rigs. Other collections like KTTY use a 6-bone animated portrait rig.
 

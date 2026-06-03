@@ -20,44 +20,191 @@ The Outlet is a WebZone — a 3D digital environment that functions like a websi
 **Rule: Before touching any code, update this section. After each file change, update this section. This is the only record that survives a context wipe.**
 
 ### Current task
-IDLE — plan set, next session picks up from NEXT STEPS below
+IDLE — moving to mobile controls next session
 
-### Session 2026-06-02 — completed and tested
+### Session 2026-06-02/03 — completed and tested ✅
 
-All items from previous list now tested and working in production:
 - BFS fix ✅ — KTTY sprites no longer chopped
-- GenericSpineAvatarInstance ✅ — portrait detection working, no arm swing on busts
-- Third-person view ✅ — world-space projected, camera traces back to wall boundary
-- Store overlays ✅ — fixed to use camera coordinates in third-person mode
-- Rebo fixed ✅ — correct position (y:75 lobby), no longer a black rectangle
-- Standalone guide removed ✅ — Rebo is the only chat
-- Performance ✅ — render capped at 640 cols, no persistent rAF violations
-- willReadFrequently / getImageData per-frame removed ✅
+- GenericSpineAvatarInstance ✅ — portrait detection, no arm swing on busts
+- Third-person view ✅ — world-space projected, camera traces to wall boundary
+- Store overlays ✅ — use camera coords in third-person mode
+- Rebo ✅ — correct position y:75 lobby, not black rectangle
+- Standalone guide removed ✅ — Rebo is only chat
+- Groq wired ✅ — Rebo uses llama-3.1-8b-instant via Groq API (VITE_GROQ_API_KEY in Vercel)
+- Ably multiplayer ✅ — Supabase Realtime replaced, full key in .env and Vercel
+- Broadcast throttle ✅ — 5Hz + movement skip, ~90% reduction in messages
+- CORS fallback ✅ — non-CORS CDNs fall back to procedural avatar gracefully
+- Performance ✅ — render capped at 640 cols, tainted canvas caught
+- IDB version = 8
 
-### Known remaining issues
-- Ollama: code is wired but backend doesn't exist yet (see NEXT STEPS #1)
-- BFS tolerance raised to 55 / 3 colors — may still leave background on some NFTs, needs ongoing tuning
-- IDB version = 8 (all avatars re-bake on next load)
+### Env vars required in Vercel
+- VITE_ABLY_API_KEY=tM5M0A.htoztA:4YE8i7zWRTzHFNQO3YDrbhXwfq-gNGmQXQfkskh7Tak
+- VITE_GROQ_API_KEY=(get from console.groq.com)
+- VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (kept but unused)
+- VITE_SKY_MAVIS_API_KEY, VITE_MORALIS_API_KEY, VITE_RONIN_PROJECT_ID, VITE_WAYPOINT_CLIENT_ID
 
 ---
 
 ## ⚡ NEXT STEPS — work in this order
 
-### 1. Ollama backend (PRIORITY)
-Rebo's NPC dialogue calls `${OLLAMA_URL}/api/chat`. OLLAMA_URL defaults to localhost:11434 — doesn't work for Vercel-hosted users. Need a hosted backend.
+### 1. Mobile controls (CURRENT PRIORITY)
+Touch input for phones — the site is visually tested on mobile but has no touch controls.
 
-**What the backend needs:**
-- A server running Ollama with llama3.2 (or llama3.1 / mistral — to be decided)
-- CORS open to the Vercel deployment domain
-- A system prompt that gives the model full knowledge of The Outlet:
-  - All store names, descriptions, genres, chains, URLs
-  - Mall layout (wings, zones, directions from lobby)
-  - How to play / controls
-  - What NFTs are supported as avatars
-- `VITE_OLLAMA_URL` set in Vercel env to the hosted endpoint
+**Joystick (left thumb zone):**
+- Virtual joystick in bottom-left quadrant of screen
+- Forward/back = W/S, strafe = A/D
+- Rendered as a semi-transparent circle with inner thumb indicator
+- Touch start = snap joystick to touch point, touch move = update direction/magnitude, touch end = stop
 
-**Options for hosting Ollama:**
-- VPS (DigitalOcean, Linode, Hetzner) with Ollama + nginx proxy
+**Swipe to rotate (right thumb zone):**
+- Right half of screen: touch drag horizontally = camera rotation (replaces Q/E and mouse look)
+- No dedicated UI element — just the swipe gesture on the right side
+
+**Interaction button (bottom-center or bottom-right):**
+- Appears when nearNPC or nearStore is set (same condition as toast)
+- Tapping it fires the same action as pressing F on keyboard
+- Label changes: "TALK" near Rebo, "ENTER" near a store
+
+**Implementation notes:**
+- All touch handlers on the canvas element
+- Check `window.matchMedia('(pointer: coarse)')` to detect touch device — show controls only on touch
+- Don't show on desktop (keyboard is available)
+
+### 2. Ronin-only store overhaul — PLANNED (do this before mobile controls)
+
+**Goal:** Remove all non-Ronin chain stores. Replace them with Ronin-native games from the Ronin Wallet dApp list. Keep Axie game-verse wing stores exactly as-is.
+
+**Stores to REMOVE from map.js STORES object and CELL map:**
+- `gods` (Gods Unchained — Immutable X) → cell GO = 11
+- `illuvium` (Immutable X) → cell IL = 12
+- `bigtime` (Multi-chain) → cell BT = 13
+- `sandbox` (Ethereum) → cell SB = 14
+- `staratlas` (Solana) → cell SA = 15
+- `decentral` (Ethereum) → cell DC = 16
+- `splinter` (Hive) → cell SP = 17
+
+**New Ronin games to ADD (priority spots get Main Hall + Food Court):**
+These reuse the same STORE_GEOMETRY coordinates — just swap the store ID → cell mapping.
+
+| Slot | Old store | New store | Priority |
+|------|-----------|-----------|----------|
+| DC (Main Hall west) | Decentraland | Pixels | HIGH — large active Ronin game |
+| SP (Main Hall east) | Splinterlands | Lumiterra | HIGH — Ronin RPG |
+| GO (Food Court south) | Gods Unchained | Wild Forest | HIGH — popular Ronin strategy |
+| IL (RPG Wing north) | Illuvium | Apeiron | HIGH — Ronin RPG |
+| BT (RPG Wing south) | Big Time | Last Odyssey | MED |
+| SB (Strategy Wing north) | The Sandbox | Kaidro: Clan Battles | MED |
+| SA (Strategy Wing south) | Star Atlas | The Machines Arena | MED |
+
+**Remaining Ronin games for new wing expansion (with DAW metrics):**
+
+| Game | DAW | URL | Priority |
+|------|-----|-----|----------|
+| Ragnarok Landverse America | 5K-15K | rola.maxion.gg | HIGH |
+| Ragnarok Landverse Genesis | 5K-10K | rolg.maxion.gg | HIGH |
+| Pixel Heroes Adventure | 3K-8K | dapp.pixelheroes.io | HIGH |
+| Sunflower Land | 3K-7K | sunflower-land.com | HIGH |
+| Kuroro Wilds | 2K-5K | hub.kuroro.com | MED |
+| PuffGo | 1.5K-4K | marketplace.skymavis.com | MED |
+| Party Icons | 1.5K-3.5K | partyicons.com | MED |
+| Calamity | 1K-3K | app.calamity.online | MED |
+| Fableborne | 1K-3K | fableborne.com | MED |
+| Forgotten Runiverse | 1K-2.5K | game.runiverse.world | MED |
+| Chicken Saga | <2K | app.sabongsaga.com | LOW |
+| Angry Dynomites | ~1K | craft-world.gg | LOW |
+| Wonder Wars | <1K | wonderwars.game | LOW |
+| Grand Arena | <1K | grandarena.gg | LOW |
+| Cyberkongz | <1K | marketplace.skymavis.com | LOW |
+| Fight League | <1K | marketplace.skymavis.com | LOW |
+| Tribesters | <1K | marketplace.skymavis.com | LOW |
+| Fishing Frenzy | <1K | fishingfrenzy.co | LOW |
+| Cambria | <500 | lobby.cambria.gg | LOW |
+
+**Also update existing store DAW metrics in map.js:**
+- Pixels: 1,000,000+ DAW
+- Wild Forest: 150,000-200,000 DAW
+- Axie Origins: 35,000-60,000 DAW
+- Lumiterra: 5,000-12,000 DAW
+- Apeiron: 2,000-5,000 DAW
+- Kaidro: 2,000-6,000 DAW
+- Last Odyssey: 1,500-4,000 DAW
+- The Machines Arena: 1,000-3,000 DAW
+
+**New wings needed — AXIE WING IS UNTOUCHABLE (y:3-44)**
+All new wings must be y:45 or lower (south). Axie Arcade/Puzzle/Action wings are off-limits.
+
+Proposed 4 new wings (all safe, south of Axie territory):
+
+**DISCOVERY WING** — x:1-10, y:54-66 (below RPG Wing, west side)
+- Carve: x:1-10, y:54-66. Doorway connecting south from RPG Wing at y:53.
+- Stores on west wall (x=0, dir:v, size:3): 4 stores
+- Store on south wall (y=67, dir:h, size:4): 1 store
+- Games: Ragnarok Landverse America, Ragnarok Landverse Genesis, Pixel Heroes Adventure, Sunflower Land, Kuroro Wilds
+- Zone label: DISCOVERY WING · Ronin RPG & Adventure
+
+**COMMUNITY WING** — x:43-49, y:48-66 (east of Strategy Wing)
+- Carve: x:43-49, y:48-66. Doorway at x:42-43, y:48-52 connecting Strategy Wing.
+- Stores on east wall (x=49, dir:v, size:3): 4 stores
+- Store on north wall (y=47, dir:h, size:4): 1 store
+- Games: PuffGo, Party Icons, Calamity, Fableborne, Wonder Wars
+- Zone label: COMMUNITY WING · Casual & Social
+
+**WEST PASSAGE** — x:5-13, y:72-78 (west of Lobby)
+- Carve: x:5-13, y:72-78. Doorway at x:13-14 connecting Lobby.
+- Stores on west wall (x=4, dir:v, size:2): 3 stores + south wall (y=79... edge) 
+- Actually: stores on north wall (y=71, dir:h) and west wall
+- Games: Tribesters, Forgotten Runiverse, Fishing Frenzy, Cambria
+- Zone label: INDIE CORNER · Emerging Games
+
+**EAST PASSAGE** — x:30-41, y:72-78 (east of Lobby)
+- Carve: x:30-41, y:72-78. Doorway at x:29-30 connecting Lobby.
+- Stores on east wall and south wall
+- Games: Angry Dynomites, Grand Arena, Chicken Saga, Cyberkongz, Fight League
+- Zone label: INDIE CORNER · Emerging Games
+
+**Cell IDs to use for new stores:** 33-51 (33-32 are taken by Axie wing, 32=Atia)
+Wait — 32 = TL (Atia's Legacy). New stores start at cell 33.
+
+**Implementation order:**
+- [ ] A. Add 19 new store entries to STORES object in map.js
+- [ ] B. Add cell constants (33-51) for new stores
+- [ ] C. Add CELL_STORE mappings for 33-51
+- [ ] D. Carve 4 new wings in map grid
+- [ ] E. Place store cells in map grid
+- [ ] F. Add STORE_GEOMETRY entries
+- [ ] G. Update getZone() for 4 new zone labels
+- [ ] H. Update Rebo system prompt with all new stores + directions
+- [ ] I. Deploy and verify
+
+**Implementation steps (update claude-state.md after each):**
+- [x] Step 1: STORES object updated — 7 non-Ronin removed, 7 Ronin added (pixels, lumiterra, wildforest, apeiron, lastodyssey, kaidro, machines)
+- [x] Step 2: CELL_STORE remapped — cells 11-17 now point to new Ronin store keys
+- [x] Step 3: Rebo system prompt updated — all 23 stores with exact directions
+- [ ] Step 4: Store assets — all new stores have no assets yet (no logo/banner/key art). Storefronts will render with procedural texture only until assets are added.
+- [ ] Step 5: Deploy and verify in-game
+
+### 3. Player chat (group + individual)
+Chat between players inside the mall — the social glue.
+
+**Group chat:**
+- Press T (or tap a chat icon on mobile) to open group chat panel
+- Messages broadcast via Ably channel event `chat` to all players in the mall
+- Displays sender's short wallet address + message
+- Minimal UI — small panel, semi-transparent, doesn't block the world
+
+**Individual/direct chat:**
+- Walk up to another player's avatar and press F (or tap) — same proximity as NPC dialogue
+- Opens a direct message panel addressed to that player
+- Messages sent via Ably channel event `dm` with target player ID
+- Receiving player sees a notification indicator on screen
+
+**Implementation notes:**
+- Proximity detection for players already exists in remoteCache
+- Need a UI panel in index.html similar to the NPC dialogue panel
+- Group chat: Ably channel `chat` event alongside existing `pos` and `enter` events
+- DM: Ably channel `dm` event with `{ from, to, message }` payload; only render if `to === myId`
+
+### 3. Multiplayer backend migration
 - Fly.io / Railway with Ollama Docker container
 - Use Groq or Together.ai API (OpenAI-compatible format, same code, no self-hosting)
 
