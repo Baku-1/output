@@ -6,10 +6,15 @@
 export const ZONE_NAME        = 'The Outlet'
 export const ZONE_TAGLINE     = 'WebZone 001 · Game Mall'
 
-// ── Supabase (Realtime broadcast — ephemeral, no DB writes) ───
+// ── Ably (Realtime broadcast — replaces Supabase Realtime) ────
+// Final production target: self-hosted Socket.io on VPS
+// Development: Ably free tier (6M messages/month)
+export const ABLY_API_KEY     = import.meta.env.VITE_ABLY_API_KEY || ''
+export const REALTIME_CHANNEL = 'outlet-mall-v1'
+
+// ── Supabase (kept for reference, no longer used for Realtime) ─
 export const SUPABASE_URL     = import.meta.env.VITE_SUPABASE_URL
 export const SUPABASE_ANON    = import.meta.env.VITE_SUPABASE_ANON_KEY
-export const REALTIME_CHANNEL = 'outlet-mall-v1'
 
 // ── Ronin Chain ────────────────────────────────────────────────
 export const RONIN_CHAIN_ID   = 2020          // mainnet (2021 = Saigon testnet)
@@ -25,9 +30,9 @@ export const MAVIS_NFT_API    = 'https://api-gateway.skymavis.com/v2/collections
 export const MORALIS_API_KEY  = import.meta.env.VITE_MORALIS_API_KEY
 export const MORALIS_CHAIN    = '0x7e4'   // Ronin mainnet chain ID in hex
 
-// ── Ollama (local LLM — guide + NPC chat) ─────────────────────
-export const OLLAMA_URL       = import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434'
-export const OLLAMA_MODEL     = import.meta.env.VITE_OLLAMA_MODEL || 'llama3.2'
+// ── Groq (NPC chat — fast llama inference) ────────────────────
+export const GROQ_API_KEY     = import.meta.env.VITE_GROQ_API_KEY || ''
+export const GROQ_MODEL       = import.meta.env.VITE_GROQ_MODEL   || 'llama-3.1-8b-instant'
 
 // ── Renderer ──────────────────────────────────────────────────
 export const RENDER_SCALE     = 0.70   // internal resolution (bump for sharpness)
@@ -42,14 +47,14 @@ export const WALL_TEX_SIZE    = 64     // wall texture resolution
 export const STORE_TEX_SIZE   = 256    // storefront texture — 256px gives sharper key art in panels
 
 // ── Multiplayer ────────────────────────────────────────────────
-export const BROADCAST_HZ     = 30     // position packets per second
+export const BROADCAST_HZ     = 5      // position packets per second (was 30 — cut 83% of Supabase messages)
 export const LERP_FACTOR      = 8      // remote player smoothing
 export const PLAYER_TIMEOUT   = 6000   // ms before removing stale remote player
 export const MAX_PLAYERS      = 32
 
 // ── Avatar cache (IndexedDB) ───────────────────────────────────
 export const IDB_DB_NAME      = 'TheOutlet'
-export const IDB_DB_VERSION   = 7
+export const IDB_DB_VERSION   = 8
 export const IDB_STORE_NAME   = 'avatars'
 export const AVATAR_TEX_SIZE    = 256
 export const AVATAR_SPRITE_SCALE = 0.70   // player billboard size (1 = wall height)

@@ -128,7 +128,17 @@ function _bake(imgEl, isAxie = false) {
     c.drawImage(imgEl, dx, dy, dw, dh)
   }
 
-  const data = c.getImageData(0, 0, S, S).data
+  // getImageData fails on tainted canvases (image loaded without CORS).
+  // Return a transparent placeholder — GenericSpineAvatarInstance will
+  // handle non-CORS images separately via drawImage-only path.
+  let imgData
+  try {
+    imgData = c.getImageData(0, 0, S, S)
+  } catch (e) {
+    console.warn('[avatarCache] Tainted canvas — CORS blocked, using transparent placeholder')
+    return new Uint8Array(S * S * 4)   // fully transparent, caller falls back to procedural
+  }
+  const data = imgData.data
 
   if (isAxie) {
     _removeAxieBackground(data, S)

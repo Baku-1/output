@@ -52,8 +52,16 @@ export function updateStoreOverlays(ctx, posX, posY, dirX, dirY, plX, plY, nearb
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
 
-  // Logo pass — every store, always
+  // Logo pass — all stores, but skip any beyond max render distance
+  const MAX_LOGO_DIST_SQ = 16 * 16   // 16 units — fade hits zero at 14 anyway
   for (const storeId of Object.keys(_imgs)) {
+    const geo = STORE_GEOMETRY[storeId]
+    if (geo) {
+      const cx = geo.ax + (geo.dir === 'v' ? 0.5 : geo.size * 0.5)
+      const cy = geo.ay + (geo.dir === 'h' ? 0.5 : geo.size * 0.5)
+      const dx = cx - posX, dy = cy - posY
+      if (dx * dx + dy * dy > MAX_LOGO_DIST_SQ) continue
+    }
     _renderLogo(ctx, storeId, posX, posY, dirX, dirY, plX, plY, W, H)
   }
 

@@ -17,7 +17,8 @@
     "@ethersproject/bytes": "^5.8.0",
     "@ethersproject/hash": "^5.8.0",
     "@sky-mavis/tanto-connect": "^0.0.22",
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "ably": "^2.3.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"

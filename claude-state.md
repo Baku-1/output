@@ -3,49 +3,85 @@ WebZone 001 · Game Mall
 
 ---
 
+## 🎯 PRODUCT VISION — READ THIS FIRST, EVERY SESSION
+
+The Outlet is a WebZone — a 3D digital environment that functions like a website but feels like a place. Players connect their Ronin wallet, their NFT becomes their avatar, and they walk into a mall where the games they actually play have storefronts.
+
+**The core loop:** Players meet up in the mall, find each other as their NFT avatars, discover or revisit games they want to play, and launch into those games together from the same spot. The mall is the social layer that exists before the game session starts.
+
+**Every decision should serve this:** Mobile controls matter because people will share this on their phone. Store panels matter because that's where the decision to play happens. Rebo matters because new users need a guide. Multiplayer presence matters because seeing your friend's avatar in front of Illuvium is the whole point.
+
+**It's their Outlet** — the place they go before they go play.
+
+---
+
 ## ⚠ IN PROGRESS — READ THIS FIRST EVERY SESSION
 
 **Rule: Before touching any code, update this section. After each file change, update this section. This is the only record that survives a context wipe.**
 
 ### Current task
-IDLE — session ended 2026-06-02
+IDLE — plan set, next session picks up from NEXT STEPS below
 
-### All changes this session (in order)
+### Session 2026-06-02 — completed and tested
 
-**1. BFS fix (avatarCache.js)** — TOL 85→40, maxDepth 255→10, conditional white/black peels. Fixes KTTY sprites chopped up.
+All items from previous list now tested and working in production:
+- BFS fix ✅ — KTTY sprites no longer chopped
+- GenericSpineAvatarInstance ✅ — portrait detection working, no arm swing on busts
+- Third-person view ✅ — world-space projected, camera traces back to wall boundary
+- Store overlays ✅ — fixed to use camera coordinates in third-person mode
+- Rebo fixed ✅ — correct position (y:75 lobby), no longer a black rectangle
+- Standalone guide removed ✅ — Rebo is the only chat
+- Performance ✅ — render capped at 640 cols, no persistent rAF violations
+- willReadFrequently / getImageData per-frame removed ✅
 
-**2. 6-bone GenericSpineAvatarInstance (src/genericSpineAvatar.js — NEW FILE)**
-Root→Hip→Torso→Head/L-Arm/R-Arm. BFS clean inline, image sliced into 5 regions, sine animation.
-avatarCache.js non-Axie path routes here → fallback static bake. renderer.js instanceof checks updated.
-⚠ NOT TESTED — clear IndexedDB before testing.
+### Known remaining issues
+- Ollama: code is wired but backend doesn't exist yet (see NEXT STEPS #1)
+- BFS tolerance raised to 55 / 3 colors — may still leave background on some NFTs, needs ongoing tuning
+- IDB version = 8 (all avatars re-bake on next load)
 
-**3. NPC renderer hardcoded 64px (renderer.js drawNPCSprites)**
-AVATAR_TEX_SIZE=256 broke Rebo — NPC textures are always 64×64. Fixed: `const S = 64`.
-Without this: Rebo = black rectangle.
+---
 
-**4. Rebo position (npcs.js)**
-Was y:53 (food court). Fixed to y:75 (lobby y:72-78). Comment said lobby but coord was wrong.
+## ⚡ NEXT STEPS — work in this order
 
-**5. Standalone guide panel removed**
-index.html: #guide div deleted. main.js: GUIDE_SYS, gHist, gLoad, sendGuide, addGM, gsend/gi listeners all removed.
-Rebo NPC dialogue is the ONLY chat.
+### 1. Ollama backend (PRIORITY)
+Rebo's NPC dialogue calls `${OLLAMA_URL}/api/chat`. OLLAMA_URL defaults to localhost:11434 — doesn't work for Vercel-hosted users. Need a hosted backend.
 
-**6. Ollama switchover (config.js + main.js)**
-config.js: ANTHROPIC_MODEL → OLLAMA_URL + OLLAMA_MODEL. main.js: both fetches → `${OLLAMA_URL}/api/chat`.
-Default: llama3.2 @ localhost:11434. Override with VITE_OLLAMA_URL / VITE_OLLAMA_MODEL in Vercel.
-⚠ NOT TESTED — requires Ollama running with llama3.2 pulled.
+**What the backend needs:**
+- A server running Ollama with llama3.2 (or llama3.1 / mistral — to be decided)
+- CORS open to the Vercel deployment domain
+- A system prompt that gives the model full knowledge of The Outlet:
+  - All store names, descriptions, genres, chains, URLs
+  - Mall layout (wings, zones, directions from lobby)
+  - How to play / controls
+  - What NFTs are supported as avatars
+- `VITE_OLLAMA_URL` set in Vercel env to the hosted endpoint
 
-**7. Third-person view (renderer.js + main.js)**
-main.js: viewMode 'first'|'third'|'overhead', button 👁 1ST → 🎮 3RD → 🗺 TOP.
-selfTexture now stored (was empty callback before).
-renderer.js: renderThirdPerson() — camera offset 2.5 units back, self-sprite injected.
-_drawSprites() + Spine overlay both handle selfSprite param.
-⚠ NOT TESTED.
+**Options for hosting Ollama:**
+- VPS (DigitalOcean, Linode, Hetzner) with Ollama + nginx proxy
+- Fly.io / Railway with Ollama Docker container
+- Use Groq or Together.ai API (OpenAI-compatible format, same code, no self-hosting)
 
-### Known inconsistent state
-- Items 2, 6, 7 all untested — test before assuming they work
-- IndexedDB must be cleared by user before KTTY rig test
-- Third-person needs selfTexture loaded first (happens on enter)
+**Rebo's system prompt** must be updated in `npcs.js` to include full mall knowledge.
+Currently it has a partial layout — needs every store, every wing, zone directions, controls, and NFT avatar info.
+
+### 2. Mobile controls
+Touch D-pad / joystick for movement. The game is mobile-tested visually but has no touch input.
+- Virtual joystick (left thumb zone) for forward/back/strafe
+- Virtual look area (right zone) for camera rotation
+- F button overlay for store/NPC interaction when nearby
+- Esc/close button for panels
+
+### 4. Multiplayer backend migration
+**Current:** Supabase Realtime broadcast — hit free tier limit (5M of 2.2M messages). Reduced to 5Hz + movement-skip to buy time.
+**Development:** Switch to Ably — 6M messages/month free tier, drop-in replacement for Supabase Realtime broadcast, same pub/sub pattern. Requires swapping the Supabase client in multiplayer.js for the Ably client SDK.
+**Production (final):** Self-hosted Socket.io on a VPS (Hetzner ~$5/month). No message limits, full control, scales with the player base. Build this when ready for real traffic.
+
+Migration order: Supabase (now, limping) → Ably (development, stable free tier) → Socket.io (launch/production).
+
+### 5. Fix stores properly
+Several stores have placeholder assets or missing `assets` entries in map.js.
+Need to audit each store: logo, banner, key_art_1, key_art_2 — what exists vs what's missing.
+Also: some store panel descriptions (`s.desc`, `s.players`, `s.cost`) may be placeholders.
 
 ---
 

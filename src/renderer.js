@@ -16,6 +16,7 @@ import { GenericSpineAvatarInstance } from './genericSpineAvatar.js'
 // ── Per-frame delta tracker — updated in renderFrame() ───────────
 let _lastRenderT = 0
 
+
 // ── Utility ───────────────────────────────────────────────────
 export function hexRGB(h) {
   return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]
@@ -215,8 +216,19 @@ export function initRenderer(canvasEl) {
 function resizeRenderer() {
   canvas.width  = window.innerWidth
   canvas.height = window.innerHeight
-  RW = Math.ceil(canvas.width  * RENDER_SCALE) | 0
-  RH = Math.ceil(canvas.height * RENDER_SCALE) | 0
+
+  // Cap render resolution — beyond 640 columns the floor/ceiling loop
+  // takes 50ms+/frame on desktop. CSS upscaling covers the rest.
+  const MAX_COLS = 640
+  const scaledW = Math.ceil(canvas.width  * RENDER_SCALE)
+  const scaledH = Math.ceil(canvas.height * RENDER_SCALE)
+  if (scaledW > MAX_COLS) {
+    RW = MAX_COLS
+    RH = Math.ceil(scaledH * (MAX_COLS / scaledW)) | 0
+  } else {
+    RW = scaledW | 0
+    RH = scaledH | 0
+  }
   offCanvas.width  = RW
   offCanvas.height = RH
   imgData = offCtx.createImageData(RW, RH)
@@ -243,35 +255,51 @@ export function renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCac
   // Render world from offset camera — no self-sprite in the billboard pass
   renderFrame(camX, camY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, null)
 
-  // Draw self as a 2D screen-space overlay — avoids all projection/clipping issues
+  // Draw self — projected to correct screen position from camera
   if (selfTexture && camDist > 0.5) {
-    _drawSelfOverlay(selfTexture, t, camDist)
+    _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, posX, posY)
   }
+
+  // Return camera position so caller can pass it to updateStoreOverlays
+  return { camX, camY }
 }
 
 // ── Third-person self overlay — screen-space draw ─────────────
 // Draws the player's own avatar sprite as a 2D element centered
 // slightly below mid-screen. Size scales with camera distance (closer = bigger).
-function _drawSelfOverlay(selfTexture, t, camDist) {
+function _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, playerX, playerY) {
   const W = canvas.width, H = canvas.height
+
+  // Project player world position onto screen using camera transform
+  const sx = playerX - camX, sy = playerY - camY
+  const invDet = 1.0 / (plX * dirY - dirX * plY)
+  const tx = invDet * ( dirY * sx - dirX * sy)
+  const ty = invDet * (-plY  * sx + plX  * sy)
+  if (ty <= 0.15) return
+
+  const screenX = Math.round((W / 2) * (1 + tx / ty))
+
+  // Scale sprite height by distance — same formula as billboard pass
+  const spriteH = Math.abs(Math.round(H * WALL_HEIGHT * AVATAR_SPRITE_SCALE / ty))
+  const spriteW = Math.round(spriteH * 0.75)
+
+  // Vertical position: sprite bottom anchored to floor projection line
+  const dy = Math.round((H - spriteH) / 2)
+  const dx = screenX - (spriteW >> 1)
+
+  if (spriteH <= 0 || spriteW <= 0) return
+
+  ctx.save()
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
 
   if (selfTexture instanceof SpineAvatarInstance || selfTexture instanceof GenericSpineAvatarInstance) {
     selfTexture.update(t - (selfTexture._lastT || 0))
     selfTexture._lastT = t
-    if (!selfTexture.isReady || !selfTexture._canvas) return
-
-    const spriteH = Math.round(H * 0.38 * (4.5 / Math.max(camDist, 1.5)))
-    const spriteW = Math.round(spriteH * 0.75)
-    const dx = Math.round((W - spriteW) / 2)
-    const dy = Math.round(H * 0.32)
-
-    ctx.save()
-    ctx.imageSmoothingEnabled = true
-    ctx.imageSmoothingQuality = 'high'
-    ctx.drawImage(selfTexture._canvas, dx, dy, spriteW, spriteH)
-    ctx.restore()
+    if (selfTexture.isReady && selfTexture._canvas) {
+      ctx.drawImage(selfTexture._canvas, dx, dy, spriteW, spriteH)
+    }
   } else if (selfTexture) {
-    // Static Uint8Array texture — blit via cached canvas (create once, reuse every frame)
     if (!_drawSelfOverlay._cache || _drawSelfOverlay._cacheSrc !== selfTexture) {
       const S = AVATAR_TEX_SIZE
       const c = document.createElement('canvas')
@@ -280,18 +308,10 @@ function _drawSelfOverlay(selfTexture, t, camDist) {
       _drawSelfOverlay._cache = c
       _drawSelfOverlay._cacheSrc = selfTexture
     }
-
-    const spriteH = Math.round(H * 0.35 * (4.5 / Math.max(camDist, 1.5)))
-    const spriteW = spriteH
-    const dx = Math.round((W - spriteW) / 2)
-    const dy = Math.round(H * 0.32)
-
-    ctx.save()
-    ctx.imageSmoothingEnabled = true
-    ctx.imageSmoothingQuality = 'high'
     ctx.drawImage(_drawSelfOverlay._cache, dx, dy, spriteW, spriteH)
-    ctx.restore()
   }
+
+  ctx.restore()
 }
 
 export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfSprite = null) {

@@ -1,11 +1,18 @@
 // ═══════════════════════════════════════════════════════════════
-// multiplayer.js — Supabase Realtime position broadcast
-// Architecture per Gemini:
-//   [Network WS] → async → [remoteCache] → read at 60fps → render
+// multiplayer.js — Ably Realtime position broadcast
+// The Outlet — WebZone 001
+//
+// Transport: Ably (development) → Socket.io self-hosted (production)
+//
+// Architecture:
+//   [Ably WS] → async → [remoteCache{}] → read at 60fps → render
+//
+// Remote players are interpolated (lerp) from network packets.
+// Avatar textures load async and inject into remoteCache when ready.
 // ═══════════════════════════════════════════════════════════════
-import { createClient } from '@supabase/supabase-js'
+import { Realtime } from 'ably'
 import {
-  SUPABASE_URL, SUPABASE_ANON, REALTIME_CHANNEL,
+  ABLY_API_KEY, REALTIME_CHANNEL,
   LERP_FACTOR, PLAYER_TIMEOUT, BROADCAST_HZ
 } from './config.js'
 import { loadPlayerAvatar } from './avatarCache.js'
@@ -15,23 +22,22 @@ import { isAxieAvatarUrl } from './nftService.js'
 // Keyed by wallet address. Read by render loop at 60fps.
 // Written by network callback asynchronously.
 //
-// Structure per Gemini:
 // {
 //   x, y,                  — interpolated (rendered) position
 //   targetX, targetY,      — latest network position
 //   dirX, dirY,            — facing direction
 //   color: [r,g,b],        — HSL fallback color
-//   texture: ImageData|null — 64×64 NFT texture (null until loaded)
+//   texture: Uint8Array|SpineAvatarInstance|null
 //   lastSeen: timestamp
 // }
 export const remoteCache = {}
 
-// ── Supabase state ────────────────────────────────────────────
-let sbClient     = null
-let sbChannel    = null
+// ── Ably state ────────────────────────────────────────────────
+let ablyClient   = null
+let ablyChannel  = null
 let channelReady = false
 let broadcastFrame = 0
-let myId         = null   // wallet address set by initMultiplayer()
+let myId         = null
 
 // ── Color from wallet address ─────────────────────────────────
 function idToColor(id) {
@@ -63,117 +69,116 @@ function _loadRemoteAvatar(id, avatarUrl) {
   }, avatarUrl)
 }
 
-// ── Init ──────────────────────────────────────────────────────
+// ── Handle incoming position packet ──────────────────────────
+function _handlePos(payload) {
+  if (payload.id === myId) return
+  const now = Date.now()
+  const id  = payload.id
 
+  if (!remoteCache[id]) {
+    remoteCache[id] = {
+      x:         payload.x,
+      y:         payload.y,
+      targetX:   payload.x,
+      targetY:   payload.y,
+      dirX:      payload.dx,
+      dirY:      payload.dy,
+      color:     idToColor(id),
+      avatarUrl: payload.avatarUrl || null,
+      isAxie:    payload.isAxie ?? isAxieAvatarUrl(payload.avatarUrl),
+      texture:   null,
+      lastSeen:  now,
+    }
+    _loadRemoteAvatar(id, payload.avatarUrl)
+  } else {
+    remoteCache[id].targetX  = payload.x
+    remoteCache[id].targetY  = payload.y
+    remoteCache[id].dirX     = payload.dx
+    remoteCache[id].dirY     = payload.dy
+    remoteCache[id].lastSeen = now
+    if (payload.avatarUrl && payload.avatarUrl !== remoteCache[id].avatarUrl) {
+      remoteCache[id].avatarUrl = payload.avatarUrl
+      remoteCache[id].isAxie    = payload.isAxie ?? isAxieAvatarUrl(payload.avatarUrl)
+      remoteCache[id].texture   = null
+      _loadRemoteAvatar(id, payload.avatarUrl)
+    }
+  }
+
+  updatePlayerCount()
+}
+
+// ── Init ──────────────────────────────────────────────────────
 export function initMultiplayer(walletAddress) {
   myId = walletAddress
 
+  if (!ABLY_API_KEY) {
+    console.warn('[multiplayer] VITE_ABLY_API_KEY not set — multiplayer disabled')
+    return
+  }
+
   try {
-    sbClient  = createClient(SUPABASE_URL, SUPABASE_ANON)
-    sbChannel = sbClient.channel(REALTIME_CHANNEL, {
-      config: { broadcast: { self: false } }
-    })
+    ablyClient  = new Realtime({ key: ABLY_API_KEY, clientId: myId })
+    ablyChannel = ablyClient.channels.get(REALTIME_CHANNEL)
 
-    // ── Receive remote positions (async network callback) ────
-    sbChannel.on('broadcast', { event: 'pos' }, ({ payload }) => {
+    // ── Subscribe to position updates ────────────────────────
+    ablyChannel.subscribe('pos', (msg) => _handlePos(msg.data))
+
+    // ── Subscribe to store entry events ─────────────────────
+    ablyChannel.subscribe('enter', (msg) => {
+      const payload = msg.data
       if (payload.id === myId) return
-      const now = Date.now()
-      const id  = payload.id
-
-      if (!remoteCache[id]) {
-        // First packet from this player — snap to position
-        remoteCache[id] = {
-          x:       payload.x,
-          y:       payload.y,
-          targetX: payload.x,
-          targetY: payload.y,
-          dirX:    payload.dx,
-          dirY:    payload.dy,
-          color:     idToColor(id),
-          avatarUrl: payload.avatarUrl || null,
-          isAxie:    payload.isAxie ?? isAxieAvatarUrl(payload.avatarUrl),
-          texture:   null,
-          lastSeen:  now,
-        }
-        // Kick off avatar load in the background
-        // When it resolves, inject the 64×64 ImageData into the cache entry
-        _loadRemoteAvatar(id, payload.avatarUrl)
-      } else {
-        // Subsequent packets — update target only, lerp handles movement
-        remoteCache[id].targetX  = payload.x
-        remoteCache[id].targetY  = payload.y
-        remoteCache[id].dirX     = payload.dx
-        remoteCache[id].dirY     = payload.dy
-        remoteCache[id].lastSeen = now
-        if (payload.avatarUrl && payload.avatarUrl !== remoteCache[id].avatarUrl) {
-          remoteCache[id].avatarUrl = payload.avatarUrl
-          remoteCache[id].isAxie    = payload.isAxie ?? isAxieAvatarUrl(payload.avatarUrl)
-          remoteCache[id].texture   = null
-          _loadRemoteAvatar(id, payload.avatarUrl)
-        }
-      }
-
-      updatePlayerCount()
+      if (_onStoreEntry) _onStoreEntry(payload.id, payload.store)
     })
 
-    _listenStoreEntries()
-
-    // Gate broadcasts behind SUBSCRIBED + 250ms grace (eliminates REST fallback)
-    sbChannel.subscribe((status) => {
-      if (status === 'SUBSCRIBED') setTimeout(() => { channelReady = true }, 250)
+    // ── Mark ready once connected ────────────────────────────
+    ablyClient.connection.once('connected', () => {
+      setTimeout(() => { channelReady = true }, 250)
     })
 
   } catch (e) {
-    console.warn('[multiplayer] Init failed:', e)
+    console.warn('[multiplayer] Ably init failed:', e)
   }
 }
 
-// ── Store entry event ─────────────────────────────────────────
-// Callback registered by main.js to surface "PlayerX entered Store" events
-
+// ── Store entry events ────────────────────────────────────────
 let _onStoreEntry = null
 export function onStoreEntry(cb) { _onStoreEntry = cb }
 
-// Receive store-entry broadcasts from other players
-function _listenStoreEntries() {
-  sbChannel.on('broadcast', { event: 'enter' }, ({ payload }) => {
-    if (payload.id === myId) return
-    if (_onStoreEntry) _onStoreEntry(payload.id, payload.store)
-  })
-}
-
-// Broadcast that the local player entered a store (fire-and-forget)
 export function broadcastStoreEntry(storeId) {
-  if (!sbChannel || !channelReady || !myId) return
-  sbChannel.send({
-    type:    'broadcast',
-    event:   'enter',
-    payload: { id: myId, store: storeId },
-  })
+  if (!ablyChannel || !channelReady || !myId) return
+  ablyChannel.publish('enter', { id: myId, store: storeId })
 }
 
-// ── Broadcast own position at ~30Hz ──────────────────────────
-// Called every frame from update(). Guards with channelReady flag.
+// ── Broadcast own position at BROADCAST_HZ ───────────────────
+let _lastBroadcastX = null, _lastBroadcastY = null
+let _lastBroadcastDX = null, _lastBroadcastDY = null
 
 export function broadcastPosition(posX, posY, dirX, dirY) {
-  if (!sbChannel || !channelReady || !myId) return
+  if (!ablyChannel || !channelReady || !myId) return
   broadcastFrame++
   if (broadcastFrame % Math.round(60 / BROADCAST_HZ) !== 0) return
 
-  sbChannel.send({
-    type:    'broadcast',
-    event:   'pos',
-    payload: {
-      id: myId, x: posX, y: posY, dx: dirX, dy: dirY,
-      avatarUrl: _myAvatarUrl(),
-      isAxie:    _avatarIsAxie(_myAvatarUrl()),
-    },
+  // Skip if position and direction haven't changed
+  const T = 0.001
+  if (
+    _lastBroadcastX !== null &&
+    Math.abs(posX  - _lastBroadcastX)  < T &&
+    Math.abs(posY  - _lastBroadcastY)  < T &&
+    Math.abs(dirX  - _lastBroadcastDX) < T &&
+    Math.abs(dirY  - _lastBroadcastDY) < T
+  ) return
+
+  _lastBroadcastX = posX; _lastBroadcastY = posY
+  _lastBroadcastDX = dirX; _lastBroadcastDY = dirY
+
+  ablyChannel.publish('pos', {
+    id: myId, x: posX, y: posY, dx: dirX, dy: dirY,
+    avatarUrl: _myAvatarUrl(),
+    isAxie:    _avatarIsAxie(_myAvatarUrl()),
   })
 }
 
-// ── Frame-rate-independent lerp (Gemini: smooth 60fps from 30Hz network) ─
-// Uses exponential decay: k=LERP_FACTOR, independent of framerate.
-
+// ── Frame-rate-independent lerp ───────────────────────────────
 export function interpolatePlayers(dt) {
   const alpha = 1 - Math.exp(-LERP_FACTOR * dt)
   const now   = Date.now()
@@ -191,7 +196,6 @@ export function interpolatePlayers(dt) {
 }
 
 // ── Active player count for HUD ───────────────────────────────
-
 export function updatePlayerCount() {
   const now    = Date.now()
   const active = Object.values(remoteCache)

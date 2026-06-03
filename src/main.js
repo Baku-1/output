@@ -9,7 +9,7 @@ import { initRenderer, renderFrame, renderThirdPerson, renderBirdsEye, drawMinim
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
 import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
 import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, getZone } from './map.js'
-import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE, OLLAMA_URL, OLLAMA_MODEL } from './config.js'
+import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE, GROQ_API_KEY, GROQ_MODEL } from './config.js'
 
 // ── Camera state ──────────────────────────────────────────────
 let posX=21.5, posY=53.5, dirX=0, dirY=-1
@@ -31,6 +31,7 @@ const keys    = {}
 
 // ── Canvas init ───────────────────────────────────────────────
 const canvas = document.getElementById('c')
+const canvasCtx = canvas.getContext('2d')   // cached — never call getContext in loop
 const mmCanvas = document.getElementById('mc')
 initRenderer(canvas)
 
@@ -253,11 +254,11 @@ function loop(ts) {
   if (viewMode === 'overhead') {
     renderBirdsEye(posX, posY, dirX, dirY, remoteCache)
   } else if (viewMode === 'third') {
-    renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStore, selfTexture)
-    updateStoreOverlays(canvas.getContext('2d'), posX, posY, dirX, dirY, plX, plY, anyPanelOpen ? new Set() : nearbyStores, canvas.width, canvas.height, t)
+    const cam = renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStore, selfTexture)
+    updateStoreOverlays(canvasCtx, cam.camX, cam.camY, dirX, dirY, plX, plY, anyPanelOpen ? new Set() : nearbyStores, canvas.width, canvas.height, t)
   } else {
     renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStore)
-    updateStoreOverlays(canvas.getContext('2d'), posX, posY, dirX, dirY, plX, plY, anyPanelOpen ? new Set() : nearbyStores, canvas.width, canvas.height, t)
+    updateStoreOverlays(canvasCtx, posX, posY, dirX, dirY, plX, plY, anyPanelOpen ? new Set() : nearbyStores, canvas.width, canvas.height, t)
   }
   drawMinimap(mmCanvas, posX, posY, dirX, dirY, remoteCache)
 
@@ -311,17 +312,21 @@ async function sendNPCMessage() {
   npcLoad = true
   const ld = addNPCMsg('…', 'ld')
   try {
-    const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+      },
       body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        stream: false,
+        model: GROQ_MODEL,
+        max_tokens: 200,
+        temperature: 0.7,
         messages: [{ role:'system', content: activeNPC.systemPrompt }, ...npcHistories[activeNPC.id]],
       })
     })
     const d = await res.json()
-    const reply = d.message?.content || '...'
+    const reply = d.choices?.[0]?.message?.content || '...'
     ld.remove(); addNPCMsg(reply, 'bot')
     npcHistories[activeNPC.id].push({ role: 'assistant', content: reply })
   } catch { ld.remove(); addNPCMsg('Radio static. Try again.', 'bot') }

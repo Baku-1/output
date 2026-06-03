@@ -28,7 +28,7 @@ export class GenericSpineAvatarInstance {
     this._size   = canvasSize
     this._canvas = document.createElement('canvas')
     this._canvas.width = this._canvas.height = canvasSize
-    this._ctx    = this._canvas.getContext('2d')
+    this._ctx    = this._canvas.getContext('2d', { willReadFrequently: false })
 
     this.pixelData = null
     this.isReady   = false
@@ -46,21 +46,48 @@ export class GenericSpineAvatarInstance {
   async init(imgEl) {
     try {
       const S   = this._size
-      const src = _cleanToCanvas(imgEl, S)   // BFS-stripped canvas
+      let src
+      try {
+        src = _cleanToCanvas(imgEl, S)   // BFS-stripped canvas
+      } catch (e) {
+        // Tainted canvas — CORS blocked. Draw image as-is without BFS.
+        console.warn('[GenericSpine] Tainted canvas — skipping BFS, drawing raw')
+        src = document.createElement('canvas')
+        src.width = src.height = S
+        const tc = src.getContext('2d')
+        const scale = Math.min(S / imgEl.naturalWidth, S / imgEl.naturalHeight)
+        tc.drawImage(imgEl, (S - imgEl.naturalWidth*scale)/2, (S - imgEl.naturalHeight*scale)/2, imgEl.naturalWidth*scale, imgEl.naturalHeight*scale)
+      }
 
-      // ── Slice source canvas into bone regions ───────────────
-      // Proportions tuned for portrait/square humanoid NFTs.
-      //   Lower body (Hip bone):  bottom 42% of image, full width
-      //   Torso (Torso bone):     rows 26-65%, centre 68% of width
-      //   Head (Head bone):       top 30%, centre 62% of width
-      //   L-Arm (L-Arm bone):     rows 26-65%, left 22% of width
-      //   R-Arm (R-Arm bone):     rows 26-65%, right 22% of width
-      this._bones = {
-        lower: _slice(src,  0,           S * 0.58, S,           S * 0.42),
-        torso: _slice(src,  S * 0.16,    S * 0.26, S * 0.68,    S * 0.39),
-        head:  _slice(src,  S * 0.19,    0,        S * 0.62,    S * 0.30),
-        lArm:  _slice(src,  0,           S * 0.26, S * 0.22,    S * 0.39),
-        rArm:  _slice(src,  S * 0.78,    S * 0.26, S * 0.22,    S * 0.39),
+      // ── Detect portrait vs full-body ────────────────────────
+      // Count opaque pixels in bottom 35% of image.
+      // Full-body NFTs have legs/feet there; bust/portrait NFTs don't.
+      // Defaults to portrait if canvas is tainted (can't read pixels).
+      try {
+        this._isPortrait = _isPortraitImage(src, S)
+      } catch (e) {
+        this._isPortrait = true   // safe default — no arm swing on unknown images
+      }
+
+      if (this._isPortrait) {
+        // Portrait mode: use whole image as one piece on torso bone.
+        // Arms don't swing — no separate arm slices.
+        this._bones = {
+          lower: null,
+          torso: _slice(src, 0, 0, S, S),   // full image on torso
+          head:  null,
+          lArm:  null,
+          rArm:  null,
+        }
+      } else {
+        // Full-body mode: slice into 5 regions with arm animation
+        this._bones = {
+          lower: _slice(src,  0,           S * 0.58, S,           S * 0.42),
+          torso: _slice(src,  S * 0.16,    S * 0.26, S * 0.68,    S * 0.39),
+          head:  _slice(src,  S * 0.19,    0,        S * 0.62,    S * 0.30),
+          lArm:  _slice(src,  0,           S * 0.26, S * 0.22,    S * 0.39),
+          rArm:  _slice(src,  S * 0.78,    S * 0.26, S * 0.22,    S * 0.39),
+        }
       }
 
       this.isReady = true
@@ -120,19 +147,51 @@ export class GenericSpineAvatarInstance {
     const rArmX = torsoX + S * 0.30
     const rArmY = torsoY - S * 0.04
 
-    // ── Draw order: painter's algorithm (back → front) ───────
     const b = this._bones
-    _drawBone(ctx, b.lower, hipX,   hipY,   0,          1.0)
-    _drawBone(ctx, b.torso, torsoX, torsoY, 0,          1.0)
-    _drawBone(ctx, b.lArm,  lArmX,  lArmY,  lArmAngle,  1.0)
-    _drawBone(ctx, b.rArm,  rArmX,  rArmY,  rArmAngle,  1.0)
-    _drawBone(ctx, b.head,  headX,  headY,  headNod,    1.0)
 
-    this.pixelData = ctx.getImageData(0, 0, S, S)
+    if (this._isPortrait) {
+      // ── Portrait mode: whole image bobs gently as one piece ──
+      // No arm swing — just Hip bob and Torso sway on the full image.
+      _drawBone(ctx, b.torso, torsoX, torsoY, 0, 1.0)
+    } else {
+      // ── Full-body mode: 6-bone split with arm swing ───────────
+      _drawBone(ctx, b.lower, hipX,   hipY,   0,          1.0)
+      _drawBone(ctx, b.torso, torsoX, torsoY, 0,          1.0)
+      _drawBone(ctx, b.lArm,  lArmX,  lArmY,  lArmAngle,  1.0)
+      _drawBone(ctx, b.rArm,  rArmX,  rArmY,  rArmAngle,  1.0)
+      _drawBone(ctx, b.head,  headX,  headY,  headNod,    1.0)
+    }
+
+    // pixelData not needed — renderer reads _canvas directly via drawImage
   }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
+
+/**
+ * Returns true if the image is a bust/portrait (content concentrated in top 65%).
+ * Checks what fraction of opaque pixels live in the bottom 35% of the image.
+ * Full-body characters have legs/feet there; busts/portraits don't.
+ */
+function _isPortraitImage(canvas, S) {
+  const data = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, S, S).data
+  const splitY = Math.round(S * 0.65)  // top 65% vs bottom 35%
+  let topOpaque = 0, botOpaque = 0
+
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      if (data[(y * S + x) * 4 + 3] > 30) {
+        if (y < splitY) topOpaque++
+        else botOpaque++
+      }
+    }
+  }
+
+  const total = topOpaque + botOpaque
+  if (total === 0) return true
+  // Portrait if bottom 35% has less than 20% of all opaque pixels
+  return (botOpaque / total) < 0.20
+}
 
 /**
  * BFS-strip the background from imgEl and return a cleaned canvas.
@@ -141,7 +200,7 @@ export class GenericSpineAvatarInstance {
 function _cleanToCanvas(imgEl, S) {
   const oc  = document.createElement('canvas')
   oc.width  = oc.height = S
-  const ctx = oc.getContext('2d')
+  const ctx = oc.getContext('2d', { willReadFrequently: true })
 
   if (imgEl && imgEl.naturalWidth > 0) {
     const scale = Math.min(S / imgEl.naturalWidth, S / imgEl.naturalHeight)

@@ -127,7 +127,13 @@ async function _loadOneUrl(url) {
     }
     return null
   }
-  return _tryLoadImage(url, IMG_TIMEOUT, true)
+  // Try with CORS first (needed for canvas pixel access / BFS background removal).
+  // If the CDN doesn't send CORS headers, fall back without crossOrigin so the
+  // image at least loads for display. avatarCache will catch the tainted-canvas
+  // error and skip BFS, using the image as-is.
+  const corsImg = await _tryLoadImage(url, IMG_TIMEOUT, true)
+  if (corsImg) return corsImg
+  return _tryLoadImage(url, IMG_TIMEOUT, false)
 }
 
 // -- Resolve a URL to the first working HTTP URL string --------------

@@ -9,6 +9,6 @@ export default defineConfig({
     // Only list packages that are actually installed.
     // tanto-kit and wagmi are NOT in node_modules — including them
     // caused Vite to error on dependency optimisation.
-    include: ['@sky-mavis/tanto-connect', 'viem'],
+    include: ['@sky-mavis/tanto-connect', 'viem', 'ably'],
   },
 })
