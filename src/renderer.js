@@ -203,6 +203,9 @@ function texSz(wallType) { return wallType === CELL.WALL ? WALL_TEX_SIZE : STORE
 
 // ── Canvas setup ──────────────────────────────────────────────
 let canvas, ctx, offCanvas, offCtx, RW, RH, imgData, pixels, zBuf
+// Per-column sprite depth — written by _drawSpineOverlay, read by store-overlays.js
+// Infinity = no sprite at that column. Values are transform depth (ty).
+export let spriteZBuf = null
 
 export function initRenderer(canvasEl) {
   canvas    = canvasEl
@@ -233,11 +236,14 @@ function resizeRenderer() {
   offCanvas.height = RH
   imgData = offCtx.createImageData(RW, RH)
   pixels  = imgData.data
-  zBuf    = new Float32Array(RW)
+  zBuf      = new Float32Array(RW)
+  spriteZBuf = new Float32Array(canvas.width).fill(Infinity)
 }
 
 // ── Main render call ──────────────────────────────────────────
 export function renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfTexture) {
+  // Clear sprite depth buffer each frame
+  if (spriteZBuf) spriteZBuf.fill(Infinity)
   const MAX_DIST = 4.5
   const STEP = 0.25
 
@@ -255,13 +261,13 @@ export function renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCac
   // Render world from offset camera — no self-sprite in the billboard pass
   renderFrame(camX, camY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, null)
 
-  // Draw self — projected to correct screen position from camera
-  if (selfTexture && camDist > 0.5) {
-    _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, posX, posY)
-  }
+  // Self-avatar is drawn by main.js AFTER updateStoreOverlays so it always sits on top
+  // Return camera pos + a deferred draw fn for the caller
+  const _self = selfTexture && camDist > 0.5
+    ? () => _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, posX, posY)
+    : null
 
-  // Return camera position so caller can pass it to updateStoreOverlays
-  return { camX, camY }
+  return { camX, camY, drawSelf: _self }
 }
 
 // ── Third-person self overlay — screen-space draw ─────────────
@@ -315,6 +321,8 @@ function _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, play
 }
 
 export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfSprite = null) {
+  // Clear sprite depth buffer each frame
+  if (spriteZBuf) spriteZBuf.fill(Infinity)
   const W2 = RW, H2 = RH, px = pixels, halfH = H2 * .5
 
   // ── 1. Floor + Ceiling ──────────────────────────────────────

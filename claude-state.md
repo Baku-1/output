@@ -183,7 +183,41 @@ Wait — 32 = TL (Atia's Legacy). New stores start at cell 33.
 - [ ] Step 4: Store assets — all new stores have no assets yet (no logo/banner/key art). Storefronts will render with procedural texture only until assets are added.
 - [ ] Step 5: Deploy and verify in-game
 
-### 3. Player chat (group + individual)
+### 3. Player chat — Group chat (separate) + DM/Trade chat (encrypted)
+
+**Design principle:** DM chat = Trade chat. Trades are a special message type within a private conversation — never a hard commercial interface. Players feel in control, not pressured.
+
+**Group chat** (separate):
+- T key to open/close
+- `chat` event on the main Ably channel (all players in the mall)
+- Plain broadcast — no encryption needed (public space)
+- Shows sender short address + message
+
+**DM + Trade chat** (encrypted):
+- Click a player's avatar → opens DM conversation
+- Dedicated Ably channel per pair: `dm:${[addrA, addrB].sort().join('-')}`
+- **AES-256 Ably channel cipher** — key derived from `SHA-256(sortedAddrA + sortedAddrB)`
+  - Both parties independently derive the same key — no UX friction
+  - Other players and Ably infrastructure cannot read plaintext
+  - Prevents impersonation / third-party trade pressure
+- Trade = special `trade_offer` message type within the DM channel:
+  - Payload: signed Seaport order + NFT details (contractAddress, tokenId, name, thumbnailUrl)
+  - Recipient sees trade card: [Offering] ↔ [Requesting] + Accept / Decline buttons
+  - Accept → `seaport.fulfillOrder()` → on-chain atomic swap
+  - Decline → `trade_decline` message sent back
+
+**Ably event types on DM channel:**
+- `dm.message` — plain text
+- `dm.trade_offer` — signed Seaport order + display metadata
+- `dm.trade_decline` — recipient declined
+- `dm.trade_complete` — on-chain tx confirmed (txHash)
+
+**NFT picker for trade:**
+- Reuses `fetchWalletNFTs()` from nftService.js — same data as avatar picker
+- Each NFT has contractAddress + tokenId (for Seaport) + name + thumbnailUrl (for UI)
+- Seaport contract on Ronin: `0x0000000000000068f116a894984e2db1123eb395`
+
+
 Chat between players inside the mall — the social glue.
 
 **Group chat:**
@@ -229,6 +263,61 @@ Migration order: Supabase (now, limping) → Ably (development, stable free tier
 Several stores have placeholder assets or missing `assets` entries in map.js.
 Need to audit each store: logo, banner, key_art_1, key_art_2 — what exists vs what's missing.
 Also: some store panel descriptions (`s.desc`, `s.players`, `s.cost`) may be placeholders.
+
+---
+
+## Sky Mavis GraphQL API — NFT Fetching
+
+**Endpoint:** `https://marketplace-graphql.skymavis.com/graphql`
+Used by the Axie marketplace itself. No API key for basic reads; use `x-api-key` header in production.
+
+**Fetch wallet NFTs:**
+```graphql
+query GetWalletNFTs($owner: String!, $from: Int, $size: Int) {
+  axies(owner: $owner, from: $from, size: $size) {
+    total
+    results {
+      id
+      name
+      image
+      class
+      parts { id name class type }
+    }
+  }
+}
+```
+
+**Key contract addresses on Ronin:**
+- Axie NFT: `0x32950db2a7164ae833121501c797d79e7b79d74c`
+- Marketplace orders: `0xfff9ce5f71ca6178d3beecedb61e7eff1602950e`
+
+Both verified on Ronin explorer — ABI pullable from `explorer.roninchain.com`.
+
+**Usage in trade panel:**
+- No ABI needed for READ (displaying NFTs to select from) — GraphQL covers it
+- ABI only needed if adding in-world buy/sell execution later
+- Flow: wallet address → POST GraphQL → display NFTs in trade picker
+
+---
+
+## Future Implementation — Direct Asset Trading Hubs — SEAPORT DEPLOYMENT PENDING
+
+**Status:** Jeremy to verify Seaport contract on Ronin mainnet explorer. If not deployed, will deploy manually.
+
+**✅ CONFIRMED DEPLOYED on Ronin mainnet:**
+`0x0000000000000068f116a894984e2db1123eb395` — Seaport 1.6 (deployed 17 Mar 2025, block 43457638)
+
+**seaport-js integration:**
+```js
+import { Seaport } from "@opensea/seaport-js"
+import { ethers } from "ethers"
+
+const SEAPORT_RONIN = "0x0000000000000068f116a894984e2db1123eb395"
+const provider = new ethers.JsonRpcProvider("https://api.roninchain.com/rpc")
+const seaport = new Seaport(provider, { overrides: { contractAddress: SEAPORT_RONIN } })
+```
+- Ronin Waypoint / tanto-connect provides the signer — already integrated in wallet.js
+- No deployment needed
 
 ---
 

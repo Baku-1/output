@@ -143,6 +143,7 @@ function _renderLogo(ctx, storeId, posX, posY, dirX, dirY, plX, plY, W, H) {
 
       if (hitCoord < wStart || hitCoord > wEnd) continue
 
+
       let frac = (hitCoord - wStart) / (wEnd - wStart)
       if (geo.dir === 'v' && plY < 0) frac = 1 - frac
       if (geo.dir === 'h' && plX < 0) frac = 1 - frac
@@ -219,6 +220,7 @@ function _renderKeyArt(ctx, storeId, posX, posY, dirX, dirY, plX, plY, W, H, t) 
       }
 
       if (hitCoord < wStart || hitCoord > wEnd) continue
+
 
       let frac = (hitCoord - wStart) / (wEnd - wStart)
       if (geo.dir === 'v' && plY < 0) frac = 1 - frac

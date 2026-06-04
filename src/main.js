@@ -271,6 +271,8 @@ function loop(ts) {
   } else if (viewMode === 'third') {
     const cam = renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStore, selfTexture)
     updateStoreOverlays(canvasCtx, cam.camX, cam.camY, dirX, dirY, plX, plY, anyPanelOpen ? new Set() : nearbyStores, canvas.width, canvas.height, t)
+    // Draw self-avatar last — always on top of overlays
+    if (cam.drawSelf) cam.drawSelf()
   } else {
     renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStore)
     updateStoreOverlays(canvasCtx, posX, posY, dirX, dirY, plX, plY, anyPanelOpen ? new Set() : nearbyStores, canvas.width, canvas.height, t)

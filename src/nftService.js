@@ -26,7 +26,7 @@ const GATEWAY_TIMEOUT = 5000   // ms per gateway attempt
 
 // Ronin / Ethereum Axie ERC-721 contracts (lowercase)
 const AXIE_CONTRACTS = new Set([
-  '0x32950db2a7164ae8331216b7f7fbeadbe63a80ce', // Axie (Ronin)
+  '0x32950db2a7164ae833121501c797d79e7b79d74c', // Axie NFT (Ronin mainnet) — verified explorer.roninchain.com
   '0x97a910714b34c10f9f7b7500f4ef9d8cddd2e0e', // legacy Ronin Axie
   '0xf5b0a3efb8e8e4c201e2a935f110eaaf3ffecb8d', // Ethereum Axie
 ])
