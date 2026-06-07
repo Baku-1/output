@@ -126,11 +126,17 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
       // Wire DM service — must come after initMultiplayer so ablyClient exists
       initDM(address, getAblyClient())
       onInboxMessage(_showTradeNotif)   // wire inbox toast
-      // Load own avatar — stored for 3rd-person self-sprite
-      loadPlayerAvatar(address, tex => { selfTexture = tex })
+      // Load own avatar — pass URL explicitly to bypass IDB cache.
+      // IDB bakes can be CORS-tainted on mobile, producing a different sprite
+      // than what remote players see when they load fresh from the URL.
+      const _loadSelf = () => {
+        const url = sessionStorage.getItem(`avatar-url:${address}`)
+        loadPlayerAvatar(address, tex => { selfTexture = tex }, url)
+      }
+      _loadSelf()
       // NOTE: listener registered once per page load; do not move inside picker flow
       window.addEventListener('avatar-changed', (e) => {
-        if (e.detail.address === address) loadPlayerAvatar(address, tex => { selfTexture = tex })
+        if (e.detail.address === address) _loadSelf()
       })
     }
 
@@ -527,4 +533,8 @@ function openStore(id) {
 }
 
 function closeStore() { document.getElementById('sp').classList.remove('on') }
-document.g
+document.getElementById('spx').addEventListener('click', closeStore)
+document.getElementById('sp').addEventListener('click', function(e) { if (e.target===this) closeStore() })
+
+document.getElementById('npc-send').addEventListener('click', sendNPCMessage)
+document.getElementById('npc-input').addEventListener('keydown', e => { if (e.key==='Enter') sendNPCMessage() })
