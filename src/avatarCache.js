@@ -105,8 +105,12 @@ export const avatarCache = {
 
   async clear(address) {
     if (!_db) return
-    const tx = _db.transaction(IDB_STORE_NAME, 'readwrite')
-    tx.objectStore(IDB_STORE_NAME).delete(address)
+    return new Promise(resolve => {
+      const tx  = _db.transaction(IDB_STORE_NAME, 'readwrite')
+      const req = tx.objectStore(IDB_STORE_NAME).delete(address)
+      req.onsuccess = () => resolve()
+      req.onerror   = () => resolve()   // resolve anyway — best-effort clear
+    })
   },
 }
 

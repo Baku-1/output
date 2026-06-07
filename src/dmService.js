@@ -19,6 +19,12 @@ const _channels = new Map()
 // per-conversation message callbacks: Map<channelName, Set<fn>>
 const _callbacks = new Map()
 
+// inbox channel (attached once at initDM, never detached)
+let _inboxChannel = null
+
+// inbox notification callbacks: Set<fn>
+const _inboxCbs = new Set()
+
 // -- Init --------------------------------------------------------
 export function initDM(myAddress, ablyClient) {
   if (!ablyClient) {
@@ -27,6 +33,13 @@ export function initDM(myAddress, ablyClient) {
   }
   _myAddr = myAddress.toLowerCase()
   _ably   = ablyClient
+
+  const inboxName = `inbox:${_myAddr}`
+  _inboxChannel = _ably.channels.get(inboxName)   // no rewind param -- live delivery only
+  _inboxChannel.subscribe('notify', (ablyMsg) => {
+    const payload = ablyMsg.data
+    _inboxCbs.forEach(fn => fn(payload))
+  })
 }
 
 // -- Channel name helper -----------------------------------------
@@ -141,6 +154,27 @@ export async function fetchHistory(theirAddr) {
 
   // Reverse so oldest messages are first (matches render order)
   return allMessages.reverse()
+}
+
+// -- Inbox subscription -----------------------------------------
+// Register a callback for incoming inbox notifications.
+// Returns an unsubscribe function (consistent with onMessage pattern).
+export function onInboxMessage(cb) {
+  if (typeof cb !== 'function') {
+    console.error('[dmService] onInboxMessage: non-function callback -- ignoring')
+    return () => {}
+  }
+  _inboxCbs.add(cb)
+  return () => _inboxCbs.delete(cb)
+}
+
+// -- Publish to another player's inbox channel ------------------
+// Uses Promise.reject for the uninitialised guard so the caller's
+// .catch() can handle it (a synchronous throw would escape .catch()).
+export function sendToInbox(theirAddr, payload) {
+  if (!_ably) return Promise.reject(new Error('[dmService] sendToInbox: not initialised'))
+  const ch = _ably.channels.get(`inbox:${theirAddr.toLowerCase()}`)
+  return ch.publish('notify', payload)
 }
 
 // -- Accessors ---------------------------------------------------

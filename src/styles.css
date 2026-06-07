@@ -337,3 +337,59 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 #tof-send:hover:not(:disabled){background:rgba(0,229,255,.22)}
 #tof-send:disabled{opacity:.35;cursor:not-allowed}
 #tof-status{font-size:12px;color:rgba(255,255,255,.5);min-height:16px}
+
+/* =================================================================
+   TRADE OFFER NOTIFICATION TOAST
+   z-index stacking (Finding 5):
+     #dm-panel             z-500  (DM conversation overlay)
+     #trade-offer-overlay  z-600  (Seaport trade creation modal)
+     #trade-notif          z-800  (inbox toast -- above both panels,
+                                   below #splash at z-1000)
+   ================================================================= */
+#trade-notif {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 800;
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  max-width: 320px;
+}
+#trade-notif.on {
+  opacity: 1;
+  pointer-events: auto;
+}
+#trade-notif > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#tn-hint {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.38);
+  letter-spacing: 0.05em;
+}
+#tn-dismiss {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+#tn-dismiss:hover { color: #fff; }

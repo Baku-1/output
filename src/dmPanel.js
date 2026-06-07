@@ -127,19 +127,27 @@ export async function openDMPanel(theirAddr, theirLabelText) {
 }
 
 export function closeDMPanel() {
+  const wasOpen = _open   // capture before clearing state
   _panel?.classList.remove('on')
   _open = false
   if (_unsubscribe) { _unsubscribe(); _unsubscribe = null }
   _theirAddr = null
   _input?.blur()
 
+  // Only re-acquire pointer lock if the panel was actually open —
+  // prevents spurious lock requests when Esc is used for other purposes
+  // (e.g. dismissing the trade notification toast).
   const gameCanvas = document.getElementById('c')
-  if (gameCanvas && document.hasFocus()) {
+  if (wasOpen && gameCanvas && document.hasFocus()) {
     gameCanvas.requestPointerLock()
   }
 }
 
 export function isDMPanelOpen() { return _open }
+
+// Returns the lowercase address of the peer whose conversation is open,
+// or null if the panel is closed.
+export function getOpenPeerAddr() { return _theirAddr }
 
 // Send a text message
 async function _sendText() {
@@ -303,13 +311,6 @@ async function _handleDecline(msg, cardEl) {
     cardEl.innerHTML = '<div class="tc-done">Offer declined.</div>'
   } catch (err) {
     console.error('[dmPanel] decline failed:', err)
+    cardEl.innerHTML = '<div class="tc-done tc-err">Decline failed.</div>'
   }
-}
-
-function _appendSystemMsg(text) {
-  const el = document.createElement('div')
-  el.className = 'dm-sys-msg'
-  el.textContent = text
-  _msgList.appendChild(el)
-  _msgList.scrollTop = _msgList.scrollHeight
 }

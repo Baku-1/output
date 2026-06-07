@@ -157,6 +157,7 @@ async function _select(nft, address, resolve) {
   console.log('[PICKER] clearing avatar cache...')
   await avatarCache.clear(address)
   console.log('[PICKER] cache cleared — resolving picker promise with:', nft.imageUrl || null)
+  window.dispatchEvent(new CustomEvent('avatar-changed', { detail: { address } }))
 
   _close()
   resolve(avatarUrl || null)
@@ -166,11 +167,12 @@ async function _select(nft, address, resolve) {
 export function setupPickerSkip(address, resolve) {
   const skipBtn = document.getElementById('ap-skip')
   console.log('[PICKER] setupPickerSkip() — #ap-skip element:', skipBtn)
-  skipBtn?.addEventListener('click', () => {
+  skipBtn?.addEventListener('click', async () => {
     console.log('[PICKER] skip button clicked — resolving picker promise with null')
     sessionStorage.removeItem(`avatar-url:${address}`)
     sessionStorage.removeItem(`avatar-is-axie:${address}`)
-    avatarCache.clear(address)
+    await avatarCache.clear(address)
+    window.dispatchEvent(new CustomEvent('avatar-changed', { detail: { address } }))
     _close()
     resolve(null)
   })

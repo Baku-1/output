@@ -5,8 +5,8 @@
 import { avatarCache, loadPlayerAvatar } from './avatarCache.js'
 import { showAvatarPicker, setupPickerSkip } from './avatarPicker.js'
 import { initMultiplayer, broadcastPosition, interpolatePlayers, remoteCache, onStoreEntry, broadcastStoreEntry, getAblyClient } from './multiplayer.js'
-import { initDM } from './dmService.js'
-import { initDMPanel, openDMPanel, closeDMPanel, isDMPanelOpen } from './dmPanel.js'
+import { initDM, onInboxMessage } from './dmService.js'
+import { initDMPanel, openDMPanel, closeDMPanel, isDMPanelOpen, getOpenPeerAddr } from './dmPanel.js'
 import { initRenderer, renderFrame, renderThirdPerson, renderBirdsEye, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
 import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
@@ -24,6 +24,7 @@ let viewMode = 'first'
 let selfTexture = null   // player's own avatar — loaded on enter, used for 3rd-person sprite
 
 // ── Game state ────────────────────────────────────────────────
+let _entered  = false   // guard against double-click on enter-btn
 let running   = false
 let t         = 0, lastTs = 0
 let nearStore    = null
@@ -107,6 +108,8 @@ async function showPickerThenEnter(address) {
 
 // ── ENTER THE ZONE ────────────────────────────────────────────
 document.getElementById('enter-btn').addEventListener('click', async () => {
+  if (_entered) return
+  _entered = true
   const splash = document.getElementById('splash')
   splash.classList.add('gone')
   setTimeout(async () => {
@@ -122,8 +125,13 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
       initMultiplayer(address)
       // Wire DM service — must come after initMultiplayer so ablyClient exists
       initDM(address, getAblyClient())
+      onInboxMessage(_showTradeNotif)   // wire inbox toast
       // Load own avatar — stored for 3rd-person self-sprite
       loadPlayerAvatar(address, tex => { selfTexture = tex })
+      // NOTE: listener registered once per page load; do not move inside picker flow
+      window.addEventListener('avatar-changed', (e) => {
+        if (e.detail.address === address) loadPlayerAvatar(address, tex => { selfTexture = tex })
+      })
     }
 
     // Wire store-entry events from other players
@@ -401,8 +409,79 @@ function addNPCMsg(text, cls) {
   return el
 }
 
+// ── Trade offer toast (inbox notification) ───────────────────
+function _ensureTradeNotif() {
+  if (_tradeNotifEl) return _tradeNotifEl
+  const el = document.createElement('div')
+  el.id = 'trade-notif'
+  // Use DOM construction, not innerHTML, to match existing security posture
+  const textSpan = document.createElement('span')
+  textSpan.id = 'tn-text'
+  const hintSpan = document.createElement('span')
+  hintSpan.id = 'tn-hint'
+  hintSpan.textContent = 'Press Esc to view'
+  const dismissBtn = document.createElement('button')
+  dismissBtn.id = 'tn-dismiss'
+  dismissBtn.title = 'Dismiss'
+  dismissBtn.textContent = 'x'
+  el.appendChild(textSpan)
+  el.appendChild(hintSpan)
+  el.appendChild(dismissBtn)
+  document.body.appendChild(el)
+
+  el.addEventListener('click', (e) => {
+    if (e.target.id === 'tn-dismiss') { _dismissTradeNotif(); return }
+    const from = el.dataset.from
+    if (from) { _dismissTradeNotif(); openDMPanel(from, shortAddress(from)) }
+  })
+
+  _tradeNotifEl = el
+  return el
+}
+
+function _showTradeNotif(notification) {
+  // Suppress if the DM panel is already open with this sender
+  if (isDMPanelOpen() && getOpenPeerAddr() === notification.from) return
+
+  const el = _ensureTradeNotif()
+  el.dataset.from = notification.from
+  document.getElementById('tn-text').textContent =
+    '[bell] Trade offer from ' + shortAddress(notification.from) +
+    (notification.summary ? ' -- ' + notification.summary : '')
+
+  el.classList.add('on')
+  _tradeNotifActive = true
+  clearTimeout(_tradeNotifTimer)
+  // Only start timer if pointer is not locked (Finding 6)
+  if (!document.pointerLockElement) {
+    _tradeNotifTimer = setTimeout(_dismissTradeNotif, 8000)
+  }
+}
+
+function _dismissTradeNotif() {
+  _tradeNotifEl?.classList.remove('on')
+  _tradeNotifActive = false
+  clearTimeout(_tradeNotifTimer)
+  _tradeNotifTimer = null
+}
+
+// Finding 6: pause auto-dismiss while pointer is locked; restart on release
+document.addEventListener('pointerlockchange', () => {
+  if (!_tradeNotifActive) return
+  if (document.pointerLockElement) {
+    clearTimeout(_tradeNotifTimer)
+    _tradeNotifTimer = null
+  } else {
+    clearTimeout(_tradeNotifTimer)
+    _tradeNotifTimer = setTimeout(_dismissTradeNotif, 8000)
+  }
+})
+
 // ── Event feed (store entries from other players) ─────────────
 let _eventTimer = null
+let _tradeNotifEl     = null
+let _tradeNotifTimer  = null
+let _tradeNotifActive = false   // true while a notification is displayed
 function showEvent(msg) {
   const el = document.getElementById('event-feed')
   if (!el) return
@@ -448,8 +527,4 @@ function openStore(id) {
 }
 
 function closeStore() { document.getElementById('sp').classList.remove('on') }
-document.getElementById('spx').addEventListener('click', closeStore)
-document.getElementById('sp').addEventListener('click', function(e) { if (e.target===this) closeStore() })
-
-document.getElementById('npc-send').addEventListener('click', sendNPCMessage)
-document.getElementById('npc-input').addEventListener('keydown', e => { if (e.key==='Enter') sendNPCMessage() })
+document.g

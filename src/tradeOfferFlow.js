@@ -15,7 +15,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { createTradeOrder, serialiseOrder, getRoninProvider } from './trade.js'
-import { sendMessage } from './dmService.js'
+import { sendMessage, sendToInbox } from './dmService.js'
 import { fetchWalletNFTs } from './nftService.js'
 import { getAddress, shortAddress } from './wallet.js'
 
@@ -214,6 +214,18 @@ async function _handleSend() {
         endTime,
       },
     })
+
+
+    // Notify recipient's inbox channel (best-effort; do not await).
+    // Finding 7: .toLowerCase() on myAddr before inbox payload -- getAddress()
+    // may return EIP-55 checksum form; _theirAddr is already lowercase.
+    const summary = `Axie #${_selectedNFT.tokenId} for #${wantId}`
+    sendToInbox(_theirAddr, {
+      from:    myAddr.toLowerCase(),
+      type:    'trade_offer',
+      summary,
+      ts:      Date.now(),
+    }).catch(err => console.warn('[tradeOfferFlow] inbox notify failed:', err))
 
     status.textContent = '✅ Offer sent!'
     _sending = false
