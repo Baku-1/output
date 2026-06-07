@@ -126,14 +126,16 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
       // Wire DM service — must come after initMultiplayer so ablyClient exists
       initDM(address, getAblyClient())
       onInboxMessage(_showTradeNotif)   // wire inbox toast
-      // Initial load: use IDB cache for fast startup.
-      loadPlayerAvatar(address, tex => { selfTexture = tex })
-      // On avatar change: bypass IDB and load fresh from the new URL so the
-      // selfTexture always matches what was just picked — not a stale cached bake.
+      // Load own avatar for 3rd-person selfTexture.
+      // If the user picked during the picker phase the URL is already in
+      // sessionStorage — bypass IDB so we always show what they actually picked.
+      // If they skipped the picker, fall back to IDB cache for fast startup.
+      const _selfUrl = () => sessionStorage.getItem(`avatar-url:${address}`) || null
+      loadPlayerAvatar(address, tex => { selfTexture = tex }, _selfUrl())
+      // On subsequent avatar changes (rare — avatar change while already in world):
       window.addEventListener('avatar-changed', (e) => {
         if (e.detail.address !== address) return
-        const freshUrl = sessionStorage.getItem(`avatar-url:${address}`)
-        loadPlayerAvatar(address, tex => { selfTexture = tex }, freshUrl)
+        loadPlayerAvatar(address, tex => { selfTexture = tex }, _selfUrl())
       })
     }
 
