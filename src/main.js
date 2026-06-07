@@ -126,13 +126,14 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
       // Wire DM service — must come after initMultiplayer so ablyClient exists
       initDM(address, getAblyClient())
       onInboxMessage(_showTradeNotif)   // wire inbox toast
-      // Load own avatar — IDB cache is used but null results (CORS-tainted bakes)
-      // are not cached, so mobile falls back to procedural avatar consistently.
-      const _loadSelf = () => loadPlayerAvatar(address, tex => { selfTexture = tex })
-      _loadSelf()
-      // NOTE: listener registered once per page load; do not move inside picker flow
+      // Initial load: use IDB cache for fast startup.
+      loadPlayerAvatar(address, tex => { selfTexture = tex })
+      // On avatar change: bypass IDB and load fresh from the new URL so the
+      // selfTexture always matches what was just picked — not a stale cached bake.
       window.addEventListener('avatar-changed', (e) => {
-        if (e.detail.address === address) _loadSelf()
+        if (e.detail.address !== address) return
+        const freshUrl = sessionStorage.getItem(`avatar-url:${address}`)
+        loadPlayerAvatar(address, tex => { selfTexture = tex }, freshUrl)
       })
     }
 

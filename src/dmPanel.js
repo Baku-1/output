@@ -65,11 +65,19 @@ export function initDMPanel() {
   document.getElementById('dm-send-btn').addEventListener('click', _sendText)
   document.getElementById('dm-trade-btn').addEventListener('click', async () => {
     if (!_theirAddr) return
+    const tradeBtn = document.getElementById('dm-trade-btn')
+    const origText = tradeBtn.textContent
+    tradeBtn.disabled = true
+    tradeBtn.textContent = '⏳'
     try {
       await _requireTradeModules()
       _tradeOfferFlow.openTradeOfferUI(_theirAddr)
     } catch (err) {
       console.error('[dmPanel] Trade feature unavailable:', err)
+      _appendSystemMsg(`⚠ Trade unavailable: ${err.message}`)
+    } finally {
+      tradeBtn.disabled = false
+      tradeBtn.textContent = origText
     }
   })
   _input.addEventListener('keydown', e => {
