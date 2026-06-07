@@ -24,6 +24,25 @@ export const IPFS_GATEWAYS = [
 ]
 const GATEWAY_TIMEOUT = 5000   // ms per gateway attempt
 
+// Route canvas-baking image loads through the Vercel Edge proxy so responses
+// arrive from our own origin, enabling getImageData() without a tainted canvas.
+// Display-only <img> loads (picker UI, resolveImageUrl) must NOT use this helper.
+function _proxyUrl(src) {
+  if (!src) return src
+  // Same-origin paths don't need proxying.
+  if (src.startsWith('/')) return src
+  // In dev mode the edge function doesn't run locally; skip proxying and warn.
+  // Run `vercel dev` + a Vite proxy entry for /api/img-proxy if baking is needed locally.
+  if (import.meta.env.DEV) {
+    console.warn(
+      '[nftService] img-proxy skipped in dev mode — canvas baking may fail. ' +
+      'Configure a Vite proxy for /api/img-proxy pointing at `vercel dev` if needed.',
+    )
+    return src
+  }
+  return `/api/img-proxy?src=${encodeURIComponent(src)}`
+}
+
 // Ronin / Ethereum Axie ERC-721 contracts (lowercase)
 const AXIE_CONTRACTS = new Set([
   '0x32950db2a7164ae833121501c797d79e7b79d74c', // Axie NFT (Ronin mainnet) — verified explorer.roninchain.com
@@ -127,12 +146,13 @@ async function _loadOneUrl(url) {
     }
     return null
   }
-  // Try with CORS first (needed for canvas pixel access / BFS background removal).
-  // If the CDN doesn't send CORS headers, fall back without crossOrigin so the
-  // image at least loads for display. avatarCache will catch the tainted-canvas
-  // error and skip BFS, using the image as-is.
-  const corsImg = await _tryLoadImage(url, IMG_TIMEOUT, true)
+  // Non-IPFS: proxy the URL so the response arrives from our origin,
+  // enabling canvas pixel reads without a tainted-canvas error.
+  const proxied = _proxyUrl(url)
+  const corsImg = await _tryLoadImage(proxied, IMG_TIMEOUT, true)
   if (corsImg) return corsImg
+  // Fallback: try un-proxied without crossOrigin (display-only — canvas baking
+  // will still fail, but at least the image loads for the picker UI).
   return _tryLoadImage(url, IMG_TIMEOUT, false)
 }
 
