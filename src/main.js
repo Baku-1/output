@@ -4,7 +4,9 @@
 // ═══════════════════════════════════════════════════════════════
 import { avatarCache, loadPlayerAvatar } from './avatarCache.js'
 import { showAvatarPicker, setupPickerSkip } from './avatarPicker.js'
-import { initMultiplayer, broadcastPosition, interpolatePlayers, remoteCache, onStoreEntry, broadcastStoreEntry } from './multiplayer.js'
+import { initMultiplayer, broadcastPosition, interpolatePlayers, remoteCache, onStoreEntry, broadcastStoreEntry, getAblyClient } from './multiplayer.js'
+import { initDM } from './dmService.js'
+import { initDMPanel, openDMPanel, closeDMPanel, isDMPanelOpen } from './dmPanel.js'
 import { initRenderer, renderFrame, renderThirdPerson, renderBirdsEye, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
 import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
@@ -27,7 +29,9 @@ let t         = 0, lastTs = 0
 let nearStore    = null
 let nearbyStores = new Set()
 let nearNPC      = null     // { id, name, ... } of closest NPC within interact range
-const NPC_INTERACT_DIST = 2.5  // map units
+let nearPlayer   = null     // { id } of closest remote player within DM range
+const NPC_INTERACT_DIST    = 2.5  // map units
+const PLAYER_INTERACT_DIST = 2.5  // map units
 const keys    = {}
 
 // ── Canvas init ───────────────────────────────────────────────
@@ -36,6 +40,7 @@ const canvasCtx = canvas.getContext('2d')   // cached — never call getContext 
 const mmCanvas = document.getElementById('mc')
 initRenderer(canvas)
 initTouch()
+initDMPanel()
 
 // ── Camera toggle ─────────────────────────────────────────────
 const camToggleBtn = document.getElementById('cam-toggle')
@@ -115,6 +120,8 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
     const address = getAddress()
     if (address) {
       initMultiplayer(address)
+      // Wire DM service — must come after initMultiplayer so ablyClient exists
+      initDM(address, getAblyClient())
       // Load own avatar — stored for 3rd-person self-sprite
       loadPlayerAvatar(address, tex => { selfTexture = tex })
     }
@@ -140,8 +147,9 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
 // ═══════════════════════════════════════════════════════════════
 function doInteract() {
   if (panelOpen()) return
-  if (nearNPC)        openNPCDialogue(nearNPC)
-  else if (nearStore) openStore(nearStore)
+  if (nearNPC)         openNPCDialogue(nearNPC)
+  else if (nearStore)  openStore(nearStore)
+  else if (nearPlayer) openDMPanel(nearPlayer.id, shortAddress(nearPlayer.id))
 }
 setInteractCallback(doInteract)
 
@@ -149,7 +157,7 @@ document.addEventListener('keydown', e => {
   keys[e.code] = true
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault()
   if (e.code === 'KeyF' || e.code === 'Space') doInteract()
-  if (e.code === 'Escape') { closeStore(); closeNPCDialogue() }
+  if (e.code === 'Escape') { closeStore(); closeNPCDialogue(); closeDMPanel() }
 })
 document.addEventListener('keyup', e => { keys[e.code] = false })
 
@@ -245,10 +253,43 @@ function update(dt) {
     if (nearNPC && !nearStore) {
       document.getElementById('tn').textContent = nearNPC.name
       toast.classList.add('on')
+      setInteractVisible(true, 'TALK')
     } else if (!nearStore) {
-      toast.classList.remove('on')
+      // Fix #16: NPC left range — re-evaluate whether the player toast
+      // should now be shown.  Previously the toast was simply removed,
+      // leaving nearPlayer in range with no toast and no interact prompt.
+      if (nearPlayer) {
+        document.getElementById('tn').textContent = shortAddress(nearPlayer.id)
+        toast.classList.add('on')
+        setInteractVisible(true, 'CHAT')
+      } else {
+        toast.classList.remove('on')
+        setInteractVisible(false, '')
+      }
+    } else {
+      // Store is near; NPC changed but store controls the toast label.
+      setInteractVisible(true, 'ENTER')
     }
-    setInteractVisible(!!nearNPC || !!nearStore, nearNPC ? 'TALK' : nearStore ? 'ENTER' : '')
+  }
+
+  // Remote player proximity (DM trigger)
+  let closestPlayer = null, closestPlayerDist = PLAYER_INTERACT_DIST * PLAYER_INTERACT_DIST
+  for (const [id, p] of Object.entries(remoteCache)) {
+    const d = (p.x - posX) ** 2 + (p.y - posY) ** 2
+    if (d < closestPlayerDist) { closestPlayerDist = d; closestPlayer = { id } }
+  }
+  if (closestPlayer?.id !== nearPlayer?.id) {
+    nearPlayer = closestPlayer
+    if (!nearNPC && !nearStore) {
+      const toast = document.getElementById('toast')
+      if (nearPlayer) {
+        document.getElementById('tn').textContent = shortAddress(nearPlayer.id)
+        toast.classList.add('on')
+      } else {
+        toast.classList.remove('on')
+      }
+      setInteractVisible(!!nearPlayer, nearPlayer ? 'CHAT' : '')
+    }
   }
 
   // Zone HUD
@@ -285,7 +326,9 @@ function loop(ts) {
 // ═══════════════════════════════════════════════════════════════
 // STORE PANEL
 // ═══════════════════════════════════════════════════════════════
-function panelOpen() { return document.getElementById('sp').classList.contains('on') }
+function panelOpen() {
+  return document.getElementById('sp').classList.contains('on') || isDMPanelOpen()
+}
 function npcDialogueOpen() { return document.getElementById('npc-dialogue').classList.contains('on') }
 
 // ── NPC Dialogue ───────────────────────────────────────────────

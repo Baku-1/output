@@ -140,6 +140,9 @@ export function initMultiplayer(walletAddress) {
   }
 }
 
+// ── Expose Ably client for DM system ─────────────────────────
+export function getAblyClient() { return ablyClient }
+
 // ── Store entry events ────────────────────────────────────────
 let _onStoreEntry = null
 export function onStoreEntry(cb) { _onStoreEntry = cb }

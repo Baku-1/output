@@ -136,3 +136,20 @@ export function shortAddress(addr) {
 export function onAccountChange(cb) {
   _accountCbs.push(cb)
 }
+
+// ── Expose the raw EIP-1193 provider for signing ──────────────
+// WalletConnect and Waypoint connectors expose .provider on the connector
+// object. The Ronin browser extension connector may NOT expose .provider
+// (it injects into window.ronin independently), so window.ronin.provider
+// is kept as the fallback for that case.
+// Returns the raw provider object (not wrapped in ethers) — wrapping is
+// the caller's responsibility.
+export function getProvider() {
+  if (_activeConnector?.provider) {
+    return _activeConnector.provider
+  }
+  if (window.ronin?.provider) {
+    return window.ronin.provider
+  }
+  return null
+}

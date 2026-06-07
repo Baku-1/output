@@ -1,6 +1,14 @@
 import { defineConfig } from 'vite'
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 export default defineConfig({
+  plugins: [
+    nodePolyfills({
+      // seaport-js uses Buffer internally (generateRandomSalt)
+      include: ['buffer'],
+      globals: { Buffer: true },
+    }),
+  ],
   build: {
     outDir: 'dist',
     target: 'es2020',
