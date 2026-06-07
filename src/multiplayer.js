@@ -161,8 +161,17 @@ export function broadcastPosition(posX, posY, dirX, dirY) {
   broadcastFrame++
   if (broadcastFrame % Math.round(60 / BROADCAST_HZ) !== 0) return
 
-  // NOTE: do NOT skip idle players — skipping stops lastSeen updates on other
-  // clients and causes them to prune this player after PLAYER_TIMEOUT.
+  // Skip broadcast if position and direction haven't changed — saves Ably messages.
+  // PLAYER_TIMEOUT handles cleanup of truly idle players.
+  const T = 0.001
+  if (
+    _lastBroadcastX !== null &&
+    Math.abs(posX  - _lastBroadcastX)  < T &&
+    Math.abs(posY  - _lastBroadcastY)  < T &&
+    Math.abs(dirX  - _lastBroadcastDX) < T &&
+    Math.abs(dirY  - _lastBroadcastDY) < T
+  ) return
+
   _lastBroadcastX = posX; _lastBroadcastY = posY
   _lastBroadcastDX = dirX; _lastBroadcastDY = dirY
 

@@ -86,6 +86,7 @@ export const avatarCache = {
 
   async set(address, imgEl, isAxie = false) {
     const tex = _bake(imgEl, isAxie)
+    if (!tex) return null   // CORS-tainted — don't cache
     return avatarCache.putTex(address, tex)
   },
 
@@ -132,15 +133,17 @@ function _bake(imgEl, isAxie = false) {
     c.drawImage(imgEl, dx, dy, dw, dh)
   }
 
-  // getImageData fails on tainted canvases (image loaded without CORS).
-  // Return a transparent placeholder — GenericSpineAvatarInstance will
-  // handle non-CORS images separately via drawImage-only path.
+  // getImageData fails on tainted canvases (image loaded without CORS headers).
+  // Return null so callers know NOT to cache this result in IDB — caching a
+  // tainted bake would permanently store a broken texture for this player.
+  // Callers should fall back to makeProceduralAvatar for a consistent result.
+  // Long-term fix: configure CORS headers on the CDN origin.
   let imgData
   try {
     imgData = c.getImageData(0, 0, S, S)
   } catch (e) {
-    console.warn('[avatarCache] Tainted canvas — CORS blocked, using transparent placeholder')
-    return new Uint8Array(S * S * 4)   // fully transparent, caller falls back to procedural
+    console.warn('[avatarCache] Tainted canvas — CORS blocked, skipping cache')
+    return null
   }
   const data = imgData.data
 
@@ -424,7 +427,7 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null)
 
     // Spine init failed — fall back to static BFS bake
     const tex = await avatarCache.set(address, img, false)
-    return cb(tex)
+    return cb(tex ?? makeProceduralAvatar(address))
   }
 
   // 3. Procedural fallback
@@ -451,6 +454,7 @@ async function _bakeBestAxie(hint, storedUrl) {
     const img = await loadImageUrl(u)
     if (!img) continue
     const tex = _bake(img, true)
+    if (!tex) continue   // CORS-tainted canvas — skip, don't cache
     const score = _axieFaceScore(tex)
     if (score > bestScore) { bestScore = score; bestTex = tex }
   }

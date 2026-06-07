@@ -49,7 +49,7 @@ export const STORE_TEX_SIZE   = 256    // storefront texture — 256px gives sha
 // ── Multiplayer ────────────────────────────────────────────────
 export const BROADCAST_HZ     = 5      // position packets per second (was 30 — cut 83% of Supabase messages)
 export const LERP_FACTOR      = 8      // remote player smoothing
-export const PLAYER_TIMEOUT   = 60000  // ms before removing stale remote player
+export const PLAYER_TIMEOUT   = 120000 // ms before removing idle remote player (2 min)
 export const MAX_PLAYERS      = 32
 
 // ── Avatar cache (IndexedDB) ───────────────────────────────────
