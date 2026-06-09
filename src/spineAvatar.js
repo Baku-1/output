@@ -57,7 +57,8 @@ function _getRequiredTextures (skeletonDataAsset, variant) {
   for (const slotName in skinAttachments) {
     const skinSlotAttachments = skinAttachments[slotName]
     for (const attachmentName in skinSlotAttachments) {
-      const path = skinSlotAttachments[attachmentName].path
+      // When path is unset in Spine JSON, the runtime uses attachmentName as the key
+      const path = skinSlotAttachments[attachmentName].path ?? attachmentName
       const cdnPath = getVariantAttachmentPath(slotName, path, variant, partColorShift)
       list.push({ key: path, url: _cdnUrl(cdnPath) })
     }
