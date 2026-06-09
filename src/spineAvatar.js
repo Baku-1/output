@@ -20,14 +20,20 @@ import VariantsData   from '@axieinfinity/mixer/dist/data/axie-2d-v3-stuff-varia
 import AnimationsData from '@axieinfinity/mixer/dist/data/axie-2d-v3-stuff-animations.json'
 
 export const AXIE_CONTRACT    = '0x32950db2a7164ae833121501c797d79e7b79d74c'
-// Canvas dimensions from mixer README: position(400, 400) + scale(0.3) in 800×600
+// Canvas dimensions — 800×600 per mixer README.
 export const SPINE_CANVAS_W = 800
 export const SPINE_CANVAS_H = 600
 export const SPINE_CANVAS_SIZE = SPINE_CANVAS_W  // kept for any existing imports
 // Canvas Y where the Axie's ground-contact point (Spine origin) lands.
-// This equals spine.position.y — the renderer uses it to anchor feet at the raycaster floorY.
-// If the character floats, increase this value (moves feet lower in canvas → feetFrac grows).
-export const SPINE_CANVAS_FEET_Y = 400
+// spine.position.y is set to this value below — the renderer derives feetFrac from it:
+//   feetFrac = SPINE_CANVAS_FEET_Y / SPINE_CANVAS_H
+// Raising it moves feet lower in canvas → character sinks toward the raycaster floor.
+export const SPINE_CANVAS_FEET_Y = 480
+
+// Spine display scale — 0.6 fills roughly the bottom 2/3 of the 800×600 canvas,
+// making the character large enough to read at raycaster billboard distances.
+// README used 0.3 for web display; raycaster needs the character to fill more canvas.
+const SPINE_SCALE = 0.6
 
 // Sky Mavis CDN — CORS is enabled by Sky Mavis for third-party developers
 const AXIE_CDN = 'https://axiecdn.axieinfinity.com/mixer-stuffs/v6/'
@@ -136,11 +142,14 @@ export class SpineAvatarInstance {
         preserveDrawingBuffer: true,  // required so ctx.drawImage reads WebGL buffer correctly
       })
 
-      // 5. Create Spine container — README values verbatim: position(400,400), scale(0.3)
+      // 5. Create Spine container
+      // position.x = canvas center; position.y = SPINE_CANVAS_FEET_Y (ground contact).
+      // scale = SPINE_SCALE (0.6) — character fills ~60% of canvas height so it renders
+      // at readable size in the raycaster billboard. README's 0.3 was for web display.
       const spine = new Spine(spineData)
       spine.autoUpdate = false
-      spine.position.set(400, 400)
-      spine.scale.set(0.3)
+      spine.position.set(SPINE_CANVAS_W / 2, SPINE_CANVAS_FEET_Y)
+      spine.scale.set(SPINE_SCALE)
 
       // Disable PIXI event system on off-screen app — prevents "isInteractive is not a function"
       // spam when the mouse moves over the page and PIXI tries to hit-test all registered apps.
@@ -224,8 +233,8 @@ export class SpineAvatarInstance {
 
       const spine = new Spine(spineData)
       spine.autoUpdate = false
-      spine.position.set(400, 400)
-      spine.scale.set(0.3)
+      spine.position.set(SPINE_CANVAS_W / 2, SPINE_CANVAS_FEET_Y)
+      spine.scale.set(SPINE_SCALE)
       spine.eventMode = 'none'
       app.stage.eventMode = 'none'
       app.stage.interactiveChildren = false
