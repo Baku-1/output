@@ -21,17 +21,16 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Proxy Sky Mavis GraphQL in dev to bypass browser CORS restrictions.
-      // graphql-gateway.axieinfinity.com is Cloudflare-protected against direct
-      // browser calls but allows server-to-server requests. The Vite proxy makes
-      // a server-side request so Cloudflare passes it through.
-      // NOTE: if Cloudflare blocks the dev machine's IP, test on the hosted domain
-      // where the Vercel Edge Function (api/graphql.js) handles it instead.
-      // Production uses api/graphql.js (Vercel Edge Function).
+      // Proxy Sky Mavis GraphQL through the official API gateway in dev.
+      // api-gateway.skymavis.com/graphql/axie-marketplace authenticates via
+      // x-api-key and is not subject to the Cloudflare challenge that blocks
+      // direct requests to graphql-gateway.axieinfinity.com.
+      // Note: dev proxy does not add x-api-key — test authenticated calls on
+      // the hosted domain where api/graphql.js adds the key server-side.
       '/api/graphql': {
-        target: 'https://graphql-gateway.axieinfinity.com',
+        target: 'https://api-gateway.skymavis.com',
         changeOrigin: true,
-        rewrite: () => '/graphql',
+        rewrite: () => '/graphql/axie-marketplace',
       },
       // Classic Axie spine assets (atlas/json/png) for initFromClassicId.
       // assets.axieinfinity.com returns 403 from the browser directly but

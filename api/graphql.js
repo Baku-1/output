@@ -1,13 +1,12 @@
 // api/graphql.js — Vercel Serverless Function (Node.js / AWS Lambda)
-// Proxies Sky Mavis Axie GraphQL so the browser never directly requests
-// graphql-gateway.axieinfinity.com, which is Cloudflare-protected against
-// direct browser calls. Serverless (AWS Lambda IPs) bypasses the CF block
-// that Edge Functions (Cloudflare Worker IPs) trigger.
+// Proxies Sky Mavis Axie GraphQL through the official authenticated API gateway.
+// api-gateway.skymavis.com/graphql/axie-marketplace authenticates via x-api-key,
+// bypassing the Cloudflare challenge on the raw graphql-gateway.axieinfinity.com endpoint.
 //
 // POST /api/graphql  { operationName, variables, query }
-// → forwards to graphql-gateway.axieinfinity.com/graphql
+// → forwards to api-gateway.skymavis.com/graphql/axie-marketplace
 
-const UPSTREAM = 'https://graphql-gateway.axieinfinity.com/graphql'
+const UPSTREAM = 'https://api-gateway.skymavis.com/graphql/axie-marketplace'
 
 export default async function handler(req, res) {
   // CORS preflight
