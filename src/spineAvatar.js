@@ -20,7 +20,10 @@ import VariantsData   from '@axieinfinity/mixer/dist/data/axie-2d-v3-stuff-varia
 import AnimationsData from '@axieinfinity/mixer/dist/data/axie-2d-v3-stuff-animations.json'
 
 export const AXIE_CONTRACT    = '0x32950db2a7164ae833121501c797d79e7b79d74c'
-export const SPINE_CANVAS_SIZE = 256
+// Canvas dimensions from mixer README: position(400, 400) + scale(0.3) in 800×600
+export const SPINE_CANVAS_W = 800
+export const SPINE_CANVAS_H = 600
+export const SPINE_CANVAS_SIZE = SPINE_CANVAS_W  // kept for any existing imports
 
 // Sky Mavis CDN — CORS is enabled by Sky Mavis for third-party developers
 const AXIE_CDN = 'https://axiecdn.axieinfinity.com/mixer-stuffs/v6/'
@@ -66,8 +69,10 @@ function _getRequiredTextures (skeletonDataAsset, variant) {
 
 // ── SpineAvatarInstance ──────────────────────────────────────────────────────
 export class SpineAvatarInstance {
-  constructor (canvasSize = SPINE_CANVAS_SIZE) {
-    this._size    = canvasSize
+  constructor (canvasW = SPINE_CANVAS_W, canvasH = SPINE_CANVAS_H) {
+    this._w    = canvasW
+    this._h    = canvasH
+    this._size = canvasW  // kept for interface compat
     this._canvas  = null     // HTMLCanvasElement — set after successful init()
     this._app     = null     // PIXI.Application
     this._spine   = null     // pixi-spine Spine container
@@ -114,24 +119,23 @@ export class SpineAvatarInstance {
       const spineData   = jsonParser.readSkeletonData(skeletonDataAsset)
 
       // 4. Create off-screen PIXI.Application
-      const S = this._size
+      // Dimensions from mixer README working example: 800×600, position(400,400), scale(0.3)
+      const cW = this._w, cH = this._h
       const offscreenCanvas = document.createElement('canvas')
       const app = new Application({
-        view:            offscreenCanvas,
-        width:           S,
-        height:          S,
-        backgroundAlpha: 0,
-        autoStart:       false,   // we drive the render loop manually
-        resolution:      1,
+        view:                 offscreenCanvas,
+        width:                cW,
+        height:               cH,
+        backgroundAlpha:      0,
+        autoStart:            false,
+        resolution:           1,
+        preserveDrawingBuffer: true,  // required so ctx.drawImage reads WebGL buffer correctly
       })
 
-      // 5. Create Spine container, position feet at 88% canvas height.
-      // pixi-spine v4 handles Spine's Y-axis inversion internally — no negative scaleY needed.
+      // 5. Create Spine container — README values verbatim: position(400,400), scale(0.3)
       const spine = new Spine(spineData)
-      spine.autoUpdate = false   // prevent double-advance via PIXI Ticker.shared
-      // Official mixer README: position(canvas_w/2, canvas_h*0.67), scale(0.3)
-      // Origin is at the feet; head extends upward; tail extends slightly below.
-      spine.position.set(S * 0.5, S * 0.67)
+      spine.autoUpdate = false
+      spine.position.set(400, 400)
       spine.scale.set(0.3)
 
       // Disable PIXI event system on off-screen app — prevents "isInteractive is not a function"
@@ -203,16 +207,18 @@ export class SpineAvatarInstance {
       const parser      = new SkeletonJson(atlasLoader)
       const spineData   = parser.readSkeletonData(skeletonJson)
 
-      const S = this._size
+      // README values verbatim: 800×600 canvas, position(400,400), scale(0.3)
+      const cW = this._w, cH = this._h
       const offscreenCanvas = document.createElement('canvas')
       const app = new Application({
-        view: offscreenCanvas, width: S, height: S,
+        view: offscreenCanvas, width: cW, height: cH,
         backgroundAlpha: 0, autoStart: false, resolution: 1,
+        preserveDrawingBuffer: true,
       })
 
       const spine = new Spine(spineData)
       spine.autoUpdate = false
-      spine.position.set(S * 0.5, S * 0.67)
+      spine.position.set(400, 400)
       spine.scale.set(0.3)
       spine.eventMode = 'none'
       app.stage.eventMode = 'none'

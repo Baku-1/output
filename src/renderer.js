@@ -10,7 +10,7 @@ import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, STORE_GEOMETRY } from './m
 import { RENDER_SCALE, WALL_HEIGHT, AVATAR_TEX_SIZE, AVATAR_SPRITE_SCALE, WALL_TEX_SIZE, STORE_TEX_SIZE } from './config.js'
 import { WING_COLORS, getZone } from './map.js'
 import { NPCS, NPC_CHARACTERS } from './npcs.js'
-import { SpineAvatarInstance } from './spineAvatar.js'
+import { SpineAvatarInstance, SPINE_CANVAS_W, SPINE_CANVAS_H } from './spineAvatar.js'
 import { GenericSpineAvatarInstance } from './genericSpineAvatar.js'
 
 // ── Per-frame delta tracker — updated in renderFrame() ───────────
@@ -287,7 +287,9 @@ function _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, play
 
   // Scale sprite height by distance — same formula as billboard pass
   const spriteH = Math.abs(Math.round(H * WALL_HEIGHT * AVATAR_SPRITE_SCALE / ty))
-  const spriteW = Math.round(spriteH * 0.75)
+  const spriteW = (selfTexture instanceof SpineAvatarInstance)
+    ? Math.round(spriteH * SPINE_CANVAS_W / SPINE_CANVAS_H)  // 800/600 aspect ratio
+    : Math.round(spriteH * 0.75)
 
   // Vertical position: sprite bottom anchored to floor projection line
   const dy = Math.round((H - spriteH) / 2)
@@ -588,9 +590,12 @@ function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp, dt) 
   if (!sp.texture.isReady || !sp.texture._canvas) return
 
   // Billboard screen rect (full-res coords)
+  // Spine canvas is 800×600 (README values) → aspect ratio 800/600 = 4/3
   const screenX  = Math.round((W / 2) * (1 + tx / ty))
   const spriteH  = Math.abs(Math.round(H * WALL_HEIGHT * AVATAR_SPRITE_SCALE / ty))
-  const spriteW  = Math.abs(Math.round(H * AVATAR_SPRITE_SCALE / ty))
+  const spriteW  = sp.texture instanceof SpineAvatarInstance
+    ? Math.round(spriteH * SPINE_CANVAS_W / SPINE_CANVAS_H)  // 800/600 aspect ratio
+    : spriteH  // GenericSpineAvatarInstance uses square canvas
 
   // Anchor feet to the floor at this depth (same floor-Y as wall bottom at distance ty).
   // SpineAvatarInstance: feet anchored at 67% of canvas height (per mixer README reference).
