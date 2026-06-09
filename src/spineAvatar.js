@@ -24,6 +24,10 @@ export const AXIE_CONTRACT    = '0x32950db2a7164ae833121501c797d79e7b79d74c'
 export const SPINE_CANVAS_W = 800
 export const SPINE_CANVAS_H = 600
 export const SPINE_CANVAS_SIZE = SPINE_CANVAS_W  // kept for any existing imports
+// Canvas Y where the Axie's ground-contact point (Spine origin) lands.
+// This equals spine.position.y — the renderer uses it to anchor feet at the raycaster floorY.
+// If the character floats, increase this value (moves feet lower in canvas → feetFrac grows).
+export const SPINE_CANVAS_FEET_Y = 400
 
 // Sky Mavis CDN — CORS is enabled by Sky Mavis for third-party developers
 const AXIE_CDN = 'https://axiecdn.axieinfinity.com/mixer-stuffs/v6/'

@@ -10,7 +10,7 @@ import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, STORE_GEOMETRY } from './m
 import { RENDER_SCALE, WALL_HEIGHT, AVATAR_TEX_SIZE, AVATAR_SPRITE_SCALE, WALL_TEX_SIZE, STORE_TEX_SIZE } from './config.js'
 import { WING_COLORS, getZone } from './map.js'
 import { NPCS, NPC_CHARACTERS } from './npcs.js'
-import { SpineAvatarInstance, SPINE_CANVAS_W, SPINE_CANVAS_H } from './spineAvatar.js'
+import { SpineAvatarInstance, SPINE_CANVAS_W, SPINE_CANVAS_H, SPINE_CANVAS_FEET_Y } from './spineAvatar.js'
 import { GenericSpineAvatarInstance } from './genericSpineAvatar.js'
 
 // ── Per-frame delta tracker — updated in renderFrame() ───────────
@@ -597,10 +597,16 @@ function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp, dt) 
     ? Math.round(spriteH * SPINE_CANVAS_W / SPINE_CANVAS_H)  // 800/600 aspect ratio
     : spriteH  // GenericSpineAvatarInstance uses square canvas
 
-  // Anchor feet to the floor at this depth (same floor-Y as wall bottom at distance ty).
-  // SpineAvatarInstance: feet anchored at 67% of canvas height (per mixer README reference).
+  // Anchor feet to the raycaster floor projection line at this depth.
+  // feetFrac = canvas Y of ground contact / canvas height — derived from the canvas
+  // setup constant, not guessed. SPINE_CANVAS_FEET_Y === spine.position.y, which is
+  // where the Spine skeleton origin (its ground plane) lands in the 800×600 buffer.
+  // To tune: change SPINE_CANVAS_FEET_Y in spineAvatar.js — raising it moves feet
+  // lower in the canvas, pulling the in-world character down onto the floor.
   // GenericSpineAvatarInstance: root bone at 97% of canvas height.
-  const feetFrac = sp.texture instanceof SpineAvatarInstance ? 0.67 : 0.97
+  const feetFrac = sp.texture instanceof SpineAvatarInstance
+    ? SPINE_CANVAS_FEET_Y / SPINE_CANVAS_H
+    : 0.97
   const floorY   = Math.round(H / 2 + H * WALL_HEIGHT / (2 * ty))
   const dyStart  = floorY - Math.round(feetFrac * spriteH)
   const dyEnd    = dyStart + spriteH
