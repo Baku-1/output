@@ -151,10 +151,12 @@ export class SpineAvatarInstance {
       if (chosenAnim) spine.state.setAnimation(0, chosenAnim, true)
 
       // 7. Pre-render first frame so _canvas isn't blank on first sample
+      // spine.update(dt) is the full SpineBase update: state.update → state.apply →
+      // skeleton.updateWorldTransform → slot container setFromMatrix(bone.matrix).
+      // Calling the 3 parts manually skips the slot-container loop, leaving all
+      // parts (fin, tail, back, starfish) at the spine root instead of their bone positions.
       app.stage.addChild(spine)
-      spine.state.update(0)
-      spine.state.apply(spine.skeleton)
-      spine.skeleton.updateWorldTransform()
+      spine.update(0)
       app.render()
 
       this._app    = app
@@ -230,9 +232,7 @@ export class SpineAvatarInstance {
       if (anim) spine.state.setAnimation(0, anim, true)
 
       app.stage.addChild(spine)
-      spine.state.update(0)
-      spine.state.apply(spine.skeleton)
-      spine.skeleton.updateWorldTransform()
+      spine.update(0)
       app.render()
 
       this._app    = app
@@ -254,9 +254,12 @@ export class SpineAvatarInstance {
    */
   update (dt) {
     if (!this.isReady || !this._spine || !this._app) return
-    this._spine.state.update(dt)
-    this._spine.state.apply(this._spine.skeleton)
-    this._spine.skeleton.updateWorldTransform()
+    // spine.update(dt) is the full SpineBase update cycle:
+    //   state.update → state.apply → skeleton.updateWorldTransform
+    //   → slot container setFromMatrix(bone.matrix) for every slot
+    // The last step is what positions fin/tail/back/starfish at their correct bone offsets.
+    // Calling the 3 steps manually was skipping that loop, causing all parts to cluster at root.
+    this._spine.update(dt)
     this._app.render()
   }
 }
