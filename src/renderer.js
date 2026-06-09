@@ -593,9 +593,9 @@ function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp, dt) 
   const spriteW  = Math.abs(Math.round(H * AVATAR_SPRITE_SCALE / ty))
 
   // Anchor feet to the floor at this depth (same floor-Y as wall bottom at distance ty).
-  // SpineAvatarInstance: feet drawn at 88% of canvas height.
+  // SpineAvatarInstance: feet anchored at 67% of canvas height (per mixer README reference).
   // GenericSpineAvatarInstance: root bone at 97% of canvas height.
-  const feetFrac = sp.texture instanceof SpineAvatarInstance ? 0.88 : 0.97
+  const feetFrac = sp.texture instanceof SpineAvatarInstance ? 0.67 : 0.97
   const floorY   = Math.round(H / 2 + H * WALL_HEIGHT / (2 * ty))
   const dyStart  = floorY - Math.round(feetFrac * spriteH)
   const dyEnd    = dyStart + spriteH

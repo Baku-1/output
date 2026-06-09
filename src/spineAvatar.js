@@ -20,7 +20,7 @@ import VariantsData   from '@axieinfinity/mixer/dist/data/axie-2d-v3-stuff-varia
 import AnimationsData from '@axieinfinity/mixer/dist/data/axie-2d-v3-stuff-animations.json'
 
 export const AXIE_CONTRACT    = '0x32950db2a7164ae833121501c797d79e7b79d74c'
-export const SPINE_CANVAS_SIZE = 128
+export const SPINE_CANVAS_SIZE = 256
 
 // Sky Mavis CDN — CORS is enabled by Sky Mavis for third-party developers
 const AXIE_CDN = 'https://axiecdn.axieinfinity.com/mixer-stuffs/v6/'
@@ -129,8 +129,16 @@ export class SpineAvatarInstance {
       // pixi-spine v4 handles Spine's Y-axis inversion internally — no negative scaleY needed.
       const spine = new Spine(spineData)
       spine.autoUpdate = false   // prevent double-advance via PIXI Ticker.shared
-      spine.position.set(S * 0.5, S * 0.88)
-      spine.scale.set(0.35)
+      // Official mixer README: position(canvas_w/2, canvas_h*0.67), scale(0.3)
+      // Origin is at the feet; head extends upward; tail extends slightly below.
+      spine.position.set(S * 0.5, S * 0.67)
+      spine.scale.set(0.3)
+
+      // Disable PIXI event system on off-screen app — prevents "isInteractive is not a function"
+      // spam when the mouse moves over the page and PIXI tries to hit-test all registered apps.
+      spine.eventMode = 'none'
+      app.stage.eventMode = 'none'
+      app.stage.interactiveChildren = false
 
       // 6. Set idle animation (try preferred names in order)
       const availableAnims = spineData.animations.map(a => a.name)
@@ -204,8 +212,11 @@ export class SpineAvatarInstance {
 
       const spine = new Spine(spineData)
       spine.autoUpdate = false
-      spine.position.set(S * 0.5, S * 0.88)
-      spine.scale.set(0.35)
+      spine.position.set(S * 0.5, S * 0.67)
+      spine.scale.set(0.3)
+      spine.eventMode = 'none'
+      app.stage.eventMode = 'none'
+      app.stage.interactiveChildren = false
 
       const anims = spineData.animations.map(a => a.name)
       const anim  = ['action/idle/normal', 'action/idle/random-02', 'idle']
