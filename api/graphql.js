@@ -27,12 +27,9 @@ export default async function handler(request) {
     return new Response('Method Not Allowed', { status: 405 })
   }
 
-  // API key: browser-forwarded header takes precedence; fall back to server env.
-  // In dev the Vite proxy forwards the x-api-key set by avatarCache.js.
-  // In production the Vercel env var is the authoritative source.
-  const apiKey =
-    request.headers.get('x-api-key') ||
-    process.env.VITE_SKY_MAVIS_API_KEY
+  // API key lives server-side only (Vercel env var SKY_MAVIS_API_KEY, no VITE_ prefix).
+  // Never forwarded from the browser — keeps the key out of the client bundle.
+  const apiKey = process.env.SKY_MAVIS_API_KEY || process.env.VITE_SKY_MAVIS_API_KEY
 
   let body
   try {

@@ -26,19 +26,14 @@ import { GenericSpineAvatarInstance } from './genericSpineAvatar.js'
 // Returns the genes hex string, or null if unavailable.
 // Requires VITE_SKY_MAVIS_API_KEY in .env; skips silently if missing.
 export async function getAxieGenes(tokenId) {
-  const apiKey = import.meta.env.VITE_SKY_MAVIS_API_KEY
-  if (!apiKey) return null
   try {
-    // Route through our own proxy (Vite dev server → graphql-gateway.axieinfinity.com,
-    // Vercel Edge in prod) so the browser never hits the endpoint directly.
-    // Query BOTH field names: newGenes (512-bit) and genes (256-bit).
-    // The mixer needs 512-bit; we prefer newGenes but fall back to genes
-    // so we're not broken by schema naming differences across gateway versions.
+    // The API key is NOT sent from the browser — it lives in Vercel's server-side
+    // environment as SKY_MAVIS_API_KEY (no VITE_ prefix) and is added by the Edge
+    // Function, keeping it out of the client bundle entirely.
     const res = await fetch('/api/graphql', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
       },
       body: JSON.stringify({
         operationName: 'GetAxieDetail',
@@ -409,9 +404,8 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null)
     if (isAxie) {
       // ── Spine path: try Ghost Canvas Render if API key + tokenId available ──
       const tokenId = nft?.tokenId ?? hint?.tokenId ?? null
-      const apiKey  = import.meta.env.VITE_SKY_MAVIS_API_KEY
-
-      if (tokenId && apiKey) {
+      // API key is server-side only — no client check needed; edge function handles auth.
+      if (tokenId) {
         const genes = await getAxieGenes(tokenId)
         if (genes) {
           const inst = new SpineAvatarInstance()
