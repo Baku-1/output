@@ -46,20 +46,18 @@ function _cdnUrl (cdnRelativePath) {
 }
 
 // ── Texture list builder ─────────────────────────────────────────────────────
-// Mirrors getRequiredTextures() from the official README exactly.
-// Returns [{ key, url }] — key is the attachment .path used by SkeletonJson lookups.
+// Verbatim from README getRequiredTextures() — no path filtering.
+// Filtering `!path` was skipping attachments whose path defaults to attachmentName,
+// causing those parts to be missing/jumbled in the rendered Axie.
 function _getRequiredTextures (skeletonDataAsset, variant) {
   const partColorShift = getAxieColorPartShift(variant)
-  const seen  = new Set()
   const list  = []
-  const skins = skeletonDataAsset.skins[0]?.attachments ?? {}
+  const skinAttachments = skeletonDataAsset.skins[0]?.attachments ?? {}
 
-  for (const slotName in skins) {
-    const slotAtts = skins[slotName]
-    for (const attName in slotAtts) {
-      const path = slotAtts[attName].path
-      if (!path || seen.has(path)) continue
-      seen.add(path)
+  for (const slotName in skinAttachments) {
+    const skinSlotAttachments = skinAttachments[slotName]
+    for (const attachmentName in skinSlotAttachments) {
+      const path = skinSlotAttachments[attachmentName].path
       const cdnPath = getVariantAttachmentPath(slotName, path, variant, partColorShift)
       list.push({ key: path, url: _cdnUrl(cdnPath) })
     }
@@ -104,6 +102,7 @@ export class SpineAvatarInstance {
       const texList = _getRequiredTextures(skeletonDataAsset, variant)
       const allTextures = {}
       await Promise.all(texList.map(async ({ key, url }) => {
+        if (!key || !url) return
         try {
           allTextures[key] = await Assets.load(url)
         } catch (e) {
