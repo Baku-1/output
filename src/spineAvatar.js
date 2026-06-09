@@ -76,6 +76,31 @@ function _getRequiredTextures (skeletonDataAsset, variant) {
   return list
 }
 
+// ── Feet-row detector ───────────────────────────────────────────────────────
+// Reads the WebGL offscreen canvas into a temporary 2D canvas and scans bottom-up
+// for the first row containing any non-transparent pixel (alpha > 16).
+// This gives the actual Y position of the character's lowest visible pixel —
+// regardless of where the Spine origin is — so the renderer can anchor it
+// exactly on the raycaster floor line without any hard-coded guess.
+function _detectFeetY (glCanvas, w, h) {
+  try {
+    const tmp = document.createElement('canvas')
+    tmp.width = w; tmp.height = h
+    const ctx = tmp.getContext('2d')
+    ctx.drawImage(glCanvas, 0, 0)
+    const data = ctx.getImageData(0, 0, w, h).data
+    for (let y = h - 1; y >= 0; y--) {
+      const row = y * w
+      for (let x = 0; x < w; x++) {
+        if (data[(row + x) * 4 + 3] > 16) return y
+      }
+    }
+  } catch (e) {
+    console.warn('[SpineAvatar] _detectFeetY failed, using SPINE_CANVAS_FEET_Y:', e)
+  }
+  return SPINE_CANVAS_FEET_Y
+}
+
 // ── SpineAvatarInstance ──────────────────────────────────────────────────────
 export class SpineAvatarInstance {
   constructor (canvasW = SPINE_CANVAS_W, canvasH = SPINE_CANVAS_H) {
@@ -172,6 +197,13 @@ export class SpineAvatarInstance {
       spine.update(0)
       app.render()
 
+      // 8. Detect actual feet pixel row from the rendered frame.
+      // The idle animation floats the body above the skeleton origin, so the visual
+      // ground contact is not always at position.y. Scan bottom-up in the canvas
+      // for the first non-transparent pixel — that row IS where the character touches.
+      // The renderer uses this._feetY / SPINE_CANVAS_H as feetFrac for floor anchoring.
+      this._feetY = _detectFeetY(offscreenCanvas, cW, cH)
+
       this._app    = app
       this._spine  = spine
       this._canvas = offscreenCanvas
@@ -247,6 +279,8 @@ export class SpineAvatarInstance {
       app.stage.addChild(spine)
       spine.update(0)
       app.render()
+
+      this._feetY = _detectFeetY(offscreenCanvas, cW, cH)
 
       this._app    = app
       this._spine  = spine

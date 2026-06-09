@@ -163,6 +163,21 @@ export class GenericSpineAvatarInstance {
     }
 
     // pixelData not needed — renderer reads _canvas directly via drawImage
+
+    // Detect ground-contact row once from the first painted frame.
+    // Portrait mode draws the art around the torso bone — its lowest pixel can
+    // land well above the 0.97·S root anchor, so the renderer must anchor to
+    // the measured row (this._feetY), not the root-bone constant.
+    if (this._feetY === undefined) {
+      const d = ctx.getImageData(0, 0, S, S).data
+      this._feetY = S - 1
+      outer:
+      for (let y = S - 1; y >= 0; y--) {
+        for (let x = 0; x < S; x++) {
+          if (d[(y * S + x) * 4 + 3] > 16) { this._feetY = y; break outer }
+        }
+      }
+    }
   }
 }
 

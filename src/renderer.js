@@ -270,9 +270,30 @@ export function renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCac
   return { camX, camY, drawSelf: _self }
 }
 
+// ── Static texture ground-contact detection ──────────────────
+// avatarCache._cropToOpaque centers the cropped art in the S×S texture, so
+// wide art (Axies are ~4:3) gets transparent padding BELOW the feet.
+// Anchoring the billboard bottom alone still floats the visible art —
+// scan the alpha channel for the lowest opaque row instead. Cached per buffer.
+const _feetFracCache = new WeakMap()
+function _staticFeetFrac(tex) {
+  let f = _feetFracCache.get(tex)
+  if (f !== undefined) return f
+  const S = AVATAR_TEX_SIZE
+  f = 1.0
+  outer:
+  for (let y = S - 1; y >= 0; y--) {
+    for (let x = 0; x < S; x++) {
+      if (tex[(y * S + x) * 4 + 3] > 20) { f = (y + 1) / S; break outer }
+    }
+  }
+  _feetFracCache.set(tex, f)
+  return f
+}
+
 // ── Third-person self overlay — screen-space draw ─────────────
-// Draws the player's own avatar sprite as a 2D element centered
-// slightly below mid-screen. Size scales with camera distance (closer = bigger).
+// Draws the player's own avatar sprite as a 2D element with its feet
+// anchored to the floor projection line. Size scales with camera distance.
 function _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, playerX, playerY) {
   const W = canvas.width, H = canvas.height
 
@@ -291,9 +312,18 @@ function _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, play
     ? Math.round(spriteH * SPINE_CANVAS_W / SPINE_CANVAS_H)  // 800/600 aspect ratio
     : Math.round(spriteH * 0.75)
 
-  // Vertical position: sprite bottom anchored to floor projection line
-  const dy = Math.round((H - spriteH) / 2)
+  // Vertical position: feet anchored to the raycaster floor projection line
+  // at this depth — same math as _drawSpineOverlay. feetFrac maps the texture's
+  // ground-contact row to the floor line (1.0 = bottom edge for static textures).
+  const feetFrac = (selfTexture instanceof SpineAvatarInstance)
+    ? ((selfTexture._feetY ?? SPINE_CANVAS_FEET_Y) + 1) / SPINE_CANVAS_H
+    : (selfTexture instanceof GenericSpineAvatarInstance)
+    ? (selfTexture._feetY !== undefined ? (selfTexture._feetY + 1) / selfTexture._canvas.height : 0.97)
+    : selfTexture ? _staticFeetFrac(selfTexture) : 1.0
+  const floorY = Math.round(H / 2 + H * WALL_HEIGHT / (2 * ty))
+  const dy = floorY - Math.round(feetFrac * spriteH)
   const dx = screenX - (spriteW >> 1)
+
 
   if (spriteH <= 0 || spriteW <= 0) return
 
@@ -510,8 +540,6 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, self
     const h = Math.abs(Math.round(H2 * WALL_HEIGHT / ty))
     const w = h  // square billboard
 
-    const dyStart=Math.max(0,Math.round((H2-h)/2))
-    const dyEnd  =Math.min(H2-1,Math.round((H2+h)/2))
     const dxStart=Math.max(0,screenX-(w>>1))
     const dxEnd  =Math.min(W2-1,screenX+(w>>1))
 
@@ -532,6 +560,15 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, self
       hasTexture = true
     }
 
+    // Vertical span — shift the billboard down so the art's lowest opaque row
+    // sits on the floor line ((H2+h)/2 = wall-bottom projection at this depth).
+    // feetFrac=1.0 (procedural fallback) reduces to the old centered span.
+    const feetFrac = hasTexture ? _staticFeetFrac(texData) : 1.0
+    const yTop    = Math.round((H2 + h) / 2 - feetFrac * h)
+    const yBot    = yTop + h
+    const dyStart = Math.max(0, yTop)
+    const dyEnd   = Math.min(H2 - 1, yBot)
+
     for (let stripe=dxStart; stripe<=dxEnd; stripe++) {
       if(ty>=zBuf[stripe]) continue
 
@@ -541,7 +578,7 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, self
       const rimLight = 1.0-edge*0.45
 
       for (let row=dyStart; row<=dyEnd; row++) {
-        const texV = (row-dyStart)/(dyEnd-dyStart+1)
+        const texV = (row-yTop)/(yBot-yTop+1)
         const idx  = (row*W2+stripe)*4
 
         if (hasTexture) {
@@ -604,8 +641,13 @@ function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp, dt) 
   // To tune: change SPINE_CANVAS_FEET_Y in spineAvatar.js — raising it moves feet
   // lower in the canvas, pulling the in-world character down onto the floor.
   // GenericSpineAvatarInstance: root bone at 97% of canvas height.
+  // Prefer the per-instance detected feet row (_detectFeetY scan at init) —
+  // the idle pose floats the body above the Spine origin, so the constant
+  // SPINE_CANVAS_FEET_Y (origin row) over-estimates where the art touches.
   const feetFrac = sp.texture instanceof SpineAvatarInstance
-    ? SPINE_CANVAS_FEET_Y / SPINE_CANVAS_H
+    ? ((sp.texture._feetY ?? SPINE_CANVAS_FEET_Y) + 1) / SPINE_CANVAS_H
+    : sp.texture._feetY !== undefined
+    ? (sp.texture._feetY + 1) / sp.texture._canvas.height
     : 0.97
   const floorY   = Math.round(H / 2 + H * WALL_HEIGHT / (2 * ty))
   const dyStart  = floorY - Math.round(feetFrac * spriteH)
@@ -1059,3 +1101,4 @@ export function drawMinimap(mmCanvas, posX, posY, dirX, dirY, remoteCache) {
   mc.strokeStyle = 'rgba(0,229,255,0.25)'; mc.lineWidth = 1
   mc.strokeRect(0.5, 0.5, dim - 1, dim - 1)
 }
+

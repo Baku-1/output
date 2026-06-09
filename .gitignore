@@ -8,3 +8,4 @@ pipeline/
 .lock
 claude-state.md
 package-lock.json
+dev-pipeline.skill

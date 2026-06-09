@@ -38,6 +38,10 @@ export const GROQ_MODEL       = import.meta.env.VITE_GROQ_MODEL   || 'llama-3.1-
 export const RENDER_SCALE     = 0.70   // internal resolution (bump for sharpness)
 export const FOV_PLANE        = 0.70   // camera plane width (~70° FOV)
 export const WALL_HEIGHT      = 1.5    // wall slice height multiplier
+// Camera pitch: fraction of screen height the horizon sits ABOVE center.
+// Positive = looking slightly downward (more floor visible, higher camera angle).
+// 0.06 ≈ 6% → horizon 36px above center on a 600px canvas.
+export const CAMERA_PITCH     = 0.06
 export const MOVE_SPEED       = 4.5    // map units / sec
 export const TURN_SPEED       = 2.0    // radians / sec
 export const MOUSE_SENSITIVITY= 0.0025
