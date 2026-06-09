@@ -126,11 +126,11 @@ export class SpineAvatarInstance {
       })
 
       // 5. Create Spine container, position feet at 88% canvas height.
-      // Spine root bone = Axie feet. scaleY is negative: Spine Y is inverted vs canvas.
+      // pixi-spine v4 handles Spine's Y-axis inversion internally — no negative scaleY needed.
       const spine = new Spine(spineData)
       spine.autoUpdate = false   // prevent double-advance via PIXI Ticker.shared
       spine.position.set(S * 0.5, S * 0.88)
-      spine.scale.set(0.35, -0.35)
+      spine.scale.set(0.35)
 
       // 6. Set idle animation (try preferred names in order)
       const availableAnims = spineData.animations.map(a => a.name)
@@ -205,7 +205,7 @@ export class SpineAvatarInstance {
       const spine = new Spine(spineData)
       spine.autoUpdate = false
       spine.position.set(S * 0.5, S * 0.88)
-      spine.scale.set(0.35, -0.35)
+      spine.scale.set(0.35)
 
       const anims = spineData.animations.map(a => a.name)
       const anim  = ['action/idle/normal', 'action/idle/random-02', 'idle']

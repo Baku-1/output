@@ -41,7 +41,9 @@ export async function getAxieGenes(tokenId) {
         'x-api-key': apiKey,
       },
       body: JSON.stringify({
-        query: `{ axie(axieId: "${tokenId}") { id newGenes genes } }`,
+        operationName: 'GetAxieDetail',
+        variables: { axieId: String(tokenId) },
+        query: 'query GetAxieDetail($axieId: ID!) { axie(axieId: $axieId) { id newGenes genes } }',
       }),
     })
     if (!res.ok) {

@@ -22,11 +22,14 @@ export default defineConfig({
   server: {
     proxy: {
       // Proxy Sky Mavis GraphQL in dev to bypass browser CORS restrictions.
-      // The Vite dev server proxies the request server-to-server so no
-      // Access-Control-Allow-Origin header is required from Sky Mavis.
+      // graphql-gateway.axieinfinity.com is Cloudflare-protected against direct
+      // browser calls but allows server-to-server requests. The Vite proxy makes
+      // a server-side request so Cloudflare passes it through.
+      // NOTE: if Cloudflare blocks the dev machine's IP, test on the hosted domain
+      // where the Vercel Edge Function (api/graphql.js) handles it instead.
       // Production uses api/graphql.js (Vercel Edge Function).
       '/api/graphql': {
-        target: 'https://marketplace-graphql.skymavis.com',
+        target: 'https://graphql-gateway.axieinfinity.com',
         changeOrigin: true,
         rewrite: () => '/graphql',
       },

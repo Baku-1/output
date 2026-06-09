@@ -1,9 +1,10 @@
 // api/graphql.js — Vercel Edge Function
 // Proxies Sky Mavis Axie GraphQL so the browser never directly requests
-// graphql-gateway.axieinfinity.com, which does not return CORS headers.
+// graphql-gateway.axieinfinity.com, which is Cloudflare-protected against
+// direct browser calls. Server-to-server (Vercel → gateway) is allowed.
 //
-// POST /api/graphql  { body: GraphQL JSON }
-// → forwards to graphql-gateway.axieinfinity.com/graphql with API key
+// POST /api/graphql  { operationName, variables, query }
+// → forwards to graphql-gateway.axieinfinity.com/graphql
 
 export const config = { runtime: 'edge' }
 
