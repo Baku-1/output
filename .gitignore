@@ -5,3 +5,6 @@ dist
 dist-ssr
 *.local
 pipeline/
+.lock
+claude-state.md
+package-lock.json

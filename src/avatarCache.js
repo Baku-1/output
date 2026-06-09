@@ -29,19 +29,31 @@ export async function getAxieGenes(tokenId) {
   const apiKey = import.meta.env.VITE_SKY_MAVIS_API_KEY
   if (!apiKey) return null
   try {
-    const res = await fetch('https://graphql-gateway.axieinfinity.com/graphql', {
+    // Route through our own proxy (Vite dev server → graphql-gateway.axieinfinity.com,
+    // Vercel Edge in prod) so the browser never hits the endpoint directly.
+    // Query BOTH field names: newGenes (512-bit) and genes (256-bit).
+    // The mixer needs 512-bit; we prefer newGenes but fall back to genes
+    // so we're not broken by schema naming differences across gateway versions.
+    const res = await fetch('/api/graphql', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
       },
       body: JSON.stringify({
-        query: `{ axie(axieId: "${tokenId}") { id genes } }`,
+        query: `{ axie(axieId: "${tokenId}") { id newGenes genes } }`,
       }),
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      console.warn('[avatarCache] getAxieGenes: HTTP', res.status, await res.text().catch(() => ''))
+      return null
+    }
     const json = await res.json()
-    return json?.data?.axie?.genes ?? null
+    if (json?.errors) {
+      console.warn('[avatarCache] getAxieGenes GraphQL errors:', JSON.stringify(json.errors))
+    }
+    // Prefer 512-bit newGenes; fall back to 256-bit genes if newGenes is absent
+    return json?.data?.axie?.newGenes ?? json?.data?.axie?.genes ?? null
   } catch (e) {
     console.warn('[avatarCache] getAxieGenes failed:', e)
     return null
@@ -406,11 +418,27 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null)
             // Return the live SpineAvatarInstance — renderer detects via .pixelData
             return cb(inst)
           }
-          // init() failed — fall through to static bake below
+          // init() failed — fall through below
         }
       }
 
-      // ── Static bake fallback (no API key, no tokenId, or Spine init failed) ──
+      // ── Classic pre-baked assets (assets.axieinfinity.com, no auth needed) ──
+      // Covers: genes unavailable, API key absent, or mixer init failure.
+      if (tokenId) {
+        const classicInst = new SpineAvatarInstance()
+        await classicInst.initFromClassicId(tokenId)
+        if (classicInst.isReady) return cb(classicInst)
+      }
+
+      // ── 6-bone rig fallback (Spine unavailable or classic assets 404) ──
+      const axieImg = await loadNFTImage(storedUrl, hint)
+      if (axieImg) {
+        const rigInst = new GenericSpineAvatarInstance()
+        await rigInst.init(axieImg)
+        if (rigInst.isReady) return cb(rigInst)
+      }
+
+      // ── Static bake last resort ──
       const tex = await _bakeBestAxie(hint, storedUrl)
       if (!tex) return cb(makeProceduralAvatar(address))
       await avatarCache.putTex(address, tex)

@@ -4,9 +4,10 @@
 // ═══════════════════════════════════════════════════════════════
 import { avatarCache, loadPlayerAvatar } from './avatarCache.js'
 import { showAvatarPicker, setupPickerSkip } from './avatarPicker.js'
-import { initMultiplayer, broadcastPosition, interpolatePlayers, remoteCache, onStoreEntry, broadcastStoreEntry, getAblyClient } from './multiplayer.js'
+import { initMultiplayer, broadcastPosition, interpolatePlayers, remoteCache, onStoreEntry, broadcastStoreEntry, getAblyClient, getAblyChannel } from './multiplayer.js'
 import { initDM, onInboxMessage } from './dmService.js'
 import { initDMPanel, openDMPanel, closeDMPanel, isDMPanelOpen, getOpenPeerAddr } from './dmPanel.js'
+import { initGroupChat, toggleGroupChat, closeGroupChat, isGroupChatOpen } from './groupChat.js'
 import { initRenderer, renderFrame, renderThirdPerson, renderBirdsEye, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
 import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
@@ -125,6 +126,14 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
       initMultiplayer(address)
       // Wire DM service — must come after initMultiplayer so ablyClient exists
       initDM(address, getAblyClient())
+      // Wire group chat — getAblyChannel() is safe here: initMultiplayer(address)
+      // ran above and sets ablyChannel synchronously before returning.
+      initGroupChat({
+        posGetter: () => ({ x: posX, y: posY }),
+        myId:      address,
+        channel:   getAblyChannel()
+        // channelOverride omitted here — only passed for guild hall rooms
+      })
       onInboxMessage(_showTradeNotif)   // wire inbox toast
       // Load own avatar for 3rd-person selfTexture.
       // If the user picked during the picker phase the URL is already in
@@ -170,7 +179,15 @@ document.addEventListener('keydown', e => {
   keys[e.code] = true
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault()
   if (e.code === 'KeyF' || e.code === 'Space') doInteract()
-  if (e.code === 'Escape') { closeStore(); closeNPCDialogue(); closeDMPanel() }
+  // T key — toggle group chat.
+  // Guards:
+  //   !panelOpen()       — don't open over store panel, DM panel, or group chat itself
+  //   !npcDialogueOpen() — don't open over NPC dialogue (same screen corner, visual overlap)
+  if (e.code === 'KeyT' && !panelOpen() && !npcDialogueOpen()) {
+    e.preventDefault()
+    toggleGroupChat()
+  }
+  if (e.code === 'Escape') { closeStore(); closeNPCDialogue(); closeDMPanel(); closeGroupChat() }
 })
 document.addEventListener('keyup', e => { keys[e.code] = false })
 
@@ -340,7 +357,9 @@ function loop(ts) {
 // STORE PANEL
 // ═══════════════════════════════════════════════════════════════
 function panelOpen() {
-  return document.getElementById('sp').classList.contains('on') || isDMPanelOpen()
+  return document.getElementById('sp').classList.contains('on')
+      || isDMPanelOpen()
+      || isGroupChatOpen()
 }
 function npcDialogueOpen() { return document.getElementById('npc-dialogue').classList.contains('on') }
 
@@ -536,4 +555,4 @@ document.getElementById('spx').addEventListener('click', closeStore)
 document.getElementById('sp').addEventListener('click', function(e) { if (e.target===this) closeStore() })
 
 document.getElementById('npc-send').addEventListener('click', sendNPCMessage)
-document.getElementById('npc-input').addEventListener('keydown', e => { if (e.key==='Enter') sendNPCMessage() })
+document.getElementById('npc-input').addEventListener('keydown', e => { if (e.key==='Enter') { sendNPCMessage() } e.stopPropagation() })

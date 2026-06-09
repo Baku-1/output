@@ -11,6 +11,8 @@
   "dependencies": {
     "@axieinfinity/mixer": "*",
     "@esotericsoftware/spine-canvas": "*",
+    "pixi-spine": "4.0.3",
+    "pixi.js": "7.2.4",
     "@ethersproject/address": "^5.8.0",
     "@ethersproject/base64": "^5.8.0",
     "@ethersproject/bignumber": "^5.8.0",

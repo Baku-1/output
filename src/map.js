@@ -145,6 +145,8 @@ function place(x, y, id) {
 
 // ── Original wings ────────────────────────────────────────────
 carve(14, 72, 29, 78)        // LOBBY
+carve(30, 74, 35, 76)        // SOUTH CONNECTING HALL    x:30-35, y:74-76
+carve(36, 72, 51, 78)        // EAST SOUTH LOBBY         x:36-51, y:72-78
 carve(CX1, 58, CX2, 71)     // MAIN HALL corridor
 carve(11, 45, 32, 57)        // FOOD COURT
 carve(1,  48, 10,  52)       // RPG WING

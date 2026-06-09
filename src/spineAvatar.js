@@ -1,152 +1,245 @@
-// SpineAvatarInstance — Ghost Canvas Render pattern
-// Spine runs in an offscreen canvas; raycaster samples pixels from it each frame
+// spineAvatar.js — Axie Spine rendering via @axieinfinity/mixer + pixi-spine
+// Implements the Ghost Canvas pattern: an off-screen PIXI.Application renders the Axie;
+// the raycaster reads _canvas pixels and composites them into the 3D scene each frame.
+//
+// Reference: node_modules/@axieinfinity/mixer/README.md (complete working example)
+
+import { Application, Assets } from 'pixi.js'
+import { Spine, TextureAtlas } from 'pixi-spine'
+import { AtlasAttachmentLoader, SkeletonJson } from '@pixi-spine/runtime-3.8'
+import {
+  initAxieMixer,
+  getAxieSpineFromGenes,
+  getAxieColorPartShift,
+  getVariantAttachmentPath,
+} from '@axieinfinity/mixer'
+
+import GenesData      from '@axieinfinity/mixer/dist/data/axie-2d-v3-stuff-genes.json'
+import SamplesData    from '@axieinfinity/mixer/dist/data/axie-2d-v3-stuff-samples.json'
+import VariantsData   from '@axieinfinity/mixer/dist/data/axie-2d-v3-stuff-variant.json'
+import AnimationsData from '@axieinfinity/mixer/dist/data/axie-2d-v3-stuff-animations.json'
 
 export const AXIE_CONTRACT    = '0x32950db2a7164ae833121501c797d79e7b79d74c'
 export const SPINE_CANVAS_SIZE = 128
 
-// ── Mixer singleton ──────────────────────────────────────────────
-// @axieinfinity/mixer is loaded once; subsequent calls are no-ops.
-let _mixerState   = 'idle'  // 'idle' | 'loading' | 'ready' | 'error'
-let _mixerPromise = null
-let _getAxieSpineFromGenes = null
+// Sky Mavis CDN — CORS is enabled by Sky Mavis for third-party developers
+const AXIE_CDN = 'https://axiecdn.axieinfinity.com/mixer-stuffs/v6/'
 
-async function _ensureMixer() {
-  if (_mixerState === 'ready')   return true
-  if (_mixerState === 'error')   return false
-  if (_mixerState === 'loading') return _mixerPromise
-
-  _mixerState   = 'loading'
-  _mixerPromise = (async () => {
-    try {
-      const mod = await import('@axieinfinity/mixer')
-      // initAxieMixer loads the 4 bundled binary data files from dist/data/
-      await mod.initAxieMixer()
-      _getAxieSpineFromGenes = mod.getAxieSpineFromGenes
-      _mixerState = 'ready'
-      return true
-    } catch (e) {
-      console.warn('[SpineAvatar] Mixer init failed:', e)
-      _mixerState = 'error'
-      return false
-    }
-  })()
-  return _mixerPromise
+// ── Mixer singleton ─────────────────────────────────────────────────────────
+// initAxieMixer is called once. The 4 JSON data files are bundled by Vite
+// as static assets — no runtime network fetch needed for them.
+let _mixerReady = false
+function _ensureMixer () {
+  if (_mixerReady) return
+  initAxieMixer(GenesData, SamplesData, VariantsData, AnimationsData)
+  _mixerReady = true
 }
 
-// ── SpineAvatarInstance ──────────────────────────────────────────
+// ── CDN URL helper ───────────────────────────────────────────────────────────
+// Sky Mavis enables CORS on axiecdn.axieinfinity.com for third-party browsers.
+// PIXI uses WebGL textures — no 2D-canvas taint risk — so img-proxy is not needed.
+function _cdnUrl (cdnRelativePath) {
+  return AXIE_CDN + cdnRelativePath
+}
+
+// ── Texture list builder ─────────────────────────────────────────────────────
+// Mirrors getRequiredTextures() from the official README exactly.
+// Returns [{ key, url }] — key is the attachment .path used by SkeletonJson lookups.
+function _getRequiredTextures (skeletonDataAsset, variant) {
+  const partColorShift = getAxieColorPartShift(variant)
+  const seen  = new Set()
+  const list  = []
+  const skins = skeletonDataAsset.skins[0]?.attachments ?? {}
+
+  for (const slotName in skins) {
+    const slotAtts = skins[slotName]
+    for (const attName in slotAtts) {
+      const path = slotAtts[attName].path
+      if (!path || seen.has(path)) continue
+      seen.add(path)
+      const cdnPath = getVariantAttachmentPath(slotName, path, variant, partColorShift)
+      list.push({ key: path, url: _cdnUrl(cdnPath) })
+    }
+  }
+  return list
+}
+
+// ── SpineAvatarInstance ──────────────────────────────────────────────────────
 export class SpineAvatarInstance {
-  constructor(canvasSize = SPINE_CANVAS_SIZE) {
-    this._size   = canvasSize
-    this._canvas = document.createElement('canvas')
-    this._canvas.width  = canvasSize
-    this._canvas.height = canvasSize
-    this._ctx    = this._canvas.getContext('2d')
-
-    /** @type {ImageData|null} — what the raycaster reads each frame */
-    this.pixelData = null
-    /** @type {boolean} — false until init() completes successfully */
+  constructor (canvasSize = SPINE_CANVAS_SIZE) {
+    this._size    = canvasSize
+    this._canvas  = null     // HTMLCanvasElement — set after successful init()
+    this._app     = null     // PIXI.Application
+    this._spine   = null     // pixi-spine Spine container
+    this.pixelData = null    // kept for interface compat; not used by _drawSpineOverlay
     this.isReady   = false
-
-    this._skeleton  = null
-    this._animState = null
-    this._renderer  = null
   }
 
   /**
-   * Fetch Axie mixer data for the given genes hex string,
-   * build the Spine skeleton, and set this.isReady = true.
-   * If anything fails, isReady stays false → raycaster uses procedural silhouette.
+   * Build the off-screen PIXI Spine from the given Axie gene hex string.
+   * Sets this.isReady = true and exposes this._canvas on success.
+   * Silently falls back (isReady stays false) on any failure so the raycaster
+   * degrades to GenericSpineAvatarInstance.
    *
-   * @param {string} genesHex  — 256-bit hex from Sky Mavis GraphQL
+   * @param {string} genesHex — 512-bit hex from Sky Mavis GraphQL
    */
-  async init(genesHex) {
+  async init (genesHex) {
     try {
-      const mixerOk = await _ensureMixer()
-      if (!mixerOk) return
+      _ensureMixer()
 
-      // Get spine-ready data from the mixer
-      const spineData = await _getAxieSpineFromGenes(genesHex)
-      if (!spineData) {
-        console.warn('[SpineAvatar] getAxieSpineFromGenes returned null for genes:', genesHex)
+      // 1. Generate Spine skeleton data from genes
+      const result = getAxieSpineFromGenes(genesHex, new Map(), false)
+      if (!result || result.error || !result.skeletonDataAsset) {
+        console.warn('[SpineAvatar] getAxieSpineFromGenes failed:', result?.error, 'genes:', genesHex)
         return
       }
+      const { skeletonDataAsset, variant } = result
 
-      // spine-canvas — import the full spine namespace
-      const spine = await import('@esotericsoftware/spine-canvas')
+      // 2. Collect + load all required part textures
+      const texList = _getRequiredTextures(skeletonDataAsset, variant)
+      const allTextures = {}
+      await Promise.all(texList.map(async ({ key, url }) => {
+        try {
+          allTextures[key] = await Assets.load(url)
+        } catch (e) {
+          console.warn('[SpineAvatar] texture load failed:', key, e.message)
+        }
+      }))
 
-      // Build skeleton from mixer output.
-      // Mixer returns: { skeletonData, atlas }  where skeletonData is
-      // already a spine.SkeletonData instance (or a raw JSON object).
-      let skData = spineData.skeletonData
+      // 3. Build pixi-spine skeleton (mirrors README exactly)
+      const spineAtlas = new TextureAtlas()
+      spineAtlas.addTextureHash(allTextures, false)
+      const atlasLoader = new AtlasAttachmentLoader(spineAtlas)
+      const jsonParser  = new SkeletonJson(atlasLoader)
+      const spineData   = jsonParser.readSkeletonData(skeletonDataAsset)
 
-      // If mixer returned raw JSON (not a SkeletonData instance), parse it:
-      if (skData && typeof skData === 'object' && !(skData instanceof spine.SkeletonData)) {
-        const atlas      = spineData.atlas   // spine.TextureAtlas
-        const attLoader  = new spine.AtlasAttachmentLoader(atlas)
-        const jsonParser = new spine.SkeletonJson(attLoader)
-        skData = jsonParser.readSkeletonData(skData)
-      }
+      // 4. Create off-screen PIXI.Application
+      const S = this._size
+      const offscreenCanvas = document.createElement('canvas')
+      const app = new Application({
+        view:            offscreenCanvas,
+        width:           S,
+        height:          S,
+        backgroundAlpha: 0,
+        autoStart:       false,   // we drive the render loop manually
+        resolution:      1,
+      })
 
-      const skeleton   = new spine.Skeleton(skData)
-      skeleton.setToSetupPose()
-      skeleton.updateWorldTransform()
+      // 5. Create Spine container, position feet at 88% canvas height.
+      // Spine root bone = Axie feet. scaleY is negative: Spine Y is inverted vs canvas.
+      const spine = new Spine(spineData)
+      spine.autoUpdate = false   // prevent double-advance via PIXI Ticker.shared
+      spine.position.set(S * 0.5, S * 0.88)
+      spine.scale.set(0.35, -0.35)
 
-      const animData   = new spine.AnimationStateData(skData)
-      const animState  = new spine.AnimationState(animData)
+      // 6. Set idle animation (try preferred names in order)
+      const availableAnims = spineData.animations.map(a => a.name)
+      const chosenAnim = ['action/idle/normal', 'action/idle/random-02', 'idle']
+        .find(n => availableAnims.includes(n)) ?? availableAnims[0]
+      if (chosenAnim) spine.state.setAnimation(0, chosenAnim, true)
 
-      // Prefer 'action', fall back to 'idle', then first available
-      const animations = skData.animations.map(a => a.name)
-      const animName   = animations.includes('action') ? 'action'
-                       : animations.includes('idle')   ? 'idle'
-                       : animations[0]
+      // 7. Pre-render first frame so _canvas isn't blank on first sample
+      app.stage.addChild(spine)
+      spine.state.update(0)
+      spine.state.apply(spine.skeleton)
+      spine.skeleton.updateWorldTransform()
+      app.render()
 
-      if (!animName) {
-        console.warn('[SpineAvatar] No animations found in skeleton')
-        return
-      }
+      this._app    = app
+      this._spine  = spine
+      this._canvas = offscreenCanvas
+      this.isReady = true
 
-      animState.setAnimation(0, animName, true)
-
-      // SkeletonRenderer takes a CanvasRenderingContext2D
-      this._renderer  = new spine.SkeletonRenderer(this._ctx)
-      this._skeleton  = skeleton
-      this._animState = animState
-      this.isReady    = true
-
-      // Pre-render one frame so pixelData is never null after init
-      this.update(0)
     } catch (e) {
-      console.warn('[SpineAvatar] init() failed — falling back to static texture:', e)
+      console.warn('[SpineAvatar] init() failed — raycaster will use GenericSpineAvatarInstance:', e)
       this.isReady = false
     }
   }
 
   /**
-   * Advance animation by deltaTime, render to offscreen canvas, refresh this.pixelData.
-   * Called once per sprite per frame by the raycaster (not once per column).
+   * Load classic (pre-origins) Axie Spine data directly from Sky Mavis asset CDN.
+   * No API key or genes required — uses pre-baked atlas/json/png at:
+   *   https://assets.axieinfinity.com/axies/{axieId}/axie/axie.{atlas|json|png}
    *
-   * @param {number} deltaTime — seconds since last frame
+   * Fallback when getAxieGenes() returns null or init() fails.
+   *
+   * @param {string|number} axieId — Axie token ID
    */
-  update(deltaTime) {
-    if (!this.isReady || !this._skeleton) return
+  async initFromClassicId (axieId) {
+    try {
+      const base = `https://assets.axieinfinity.com/axies/${axieId}/axie/axie`
 
-    this._animState.update(deltaTime)
-    this._animState.apply(this._skeleton)
-    this._skeleton.updateWorldTransform()
+      // Load atlas text, skeleton JSON, and texture in parallel
+      const [atlasText, skeletonJson, texture] = await Promise.all([
+        fetch(base + '.atlas').then(r => { if (!r.ok) throw new Error('atlas ' + r.status); return r.text() }),
+        fetch(base + '.json').then(r => { if (!r.ok) throw new Error('json ' + r.status); return r.json() }),
+        Assets.load(base + '.png'),
+      ])
 
-    const ctx = this._ctx
-    const S   = this._size
-    ctx.clearRect(0, 0, S, S)
+      // TextureAtlas may call the completion callback synchronously (during constructor)
+      // before the outer atlasRef assignment completes. Deferring via microtask ensures
+      // atlasRef is assigned before resolve() fires.
+      let atlasRef
+      const atlas = await new Promise((resolve, reject) => {
+        try {
+          atlasRef = new TextureAtlas(atlasText, (_path, loader) => {
+            // Provide the pre-loaded texture for every page in the atlas
+            loader(texture)
+          }, () => {
+            Promise.resolve().then(() => resolve(atlasRef))
+          })
+        } catch (e) { reject(e) }
+      })
 
-    ctx.save()
-    // Spine world-origin sits at the Axie's feet.
-    // Translate to lower-centre of canvas; scale to fit ~90% of height.
-    // Spine Y-axis is inverted relative to canvas, so scaleY is negative.
-    ctx.translate(S * 0.5, S * 0.88)
-    ctx.scale(0.22, -0.22)
-    this._renderer.draw(this._skeleton)
-    ctx.restore()
+      const atlasLoader = new AtlasAttachmentLoader(atlas)
+      const parser      = new SkeletonJson(atlasLoader)
+      const spineData   = parser.readSkeletonData(skeletonJson)
 
-    this.pixelData = ctx.getImageData(0, 0, S, S)
+      const S = this._size
+      const offscreenCanvas = document.createElement('canvas')
+      const app = new Application({
+        view: offscreenCanvas, width: S, height: S,
+        backgroundAlpha: 0, autoStart: false, resolution: 1,
+      })
+
+      const spine = new Spine(spineData)
+      spine.autoUpdate = false
+      spine.position.set(S * 0.5, S * 0.88)
+      spine.scale.set(0.35, -0.35)
+
+      const anims = spineData.animations.map(a => a.name)
+      const anim  = ['action/idle/normal', 'action/idle/random-02', 'idle']
+        .find(n => anims.includes(n)) ?? anims[0]
+      if (anim) spine.state.setAnimation(0, anim, true)
+
+      app.stage.addChild(spine)
+      spine.state.update(0)
+      spine.state.apply(spine.skeleton)
+      spine.skeleton.updateWorldTransform()
+      app.render()
+
+      this._app    = app
+      this._spine  = spine
+      this._canvas = offscreenCanvas
+      this.isReady = true
+
+    } catch (e) {
+      console.warn('[SpineAvatar] initFromClassicId() failed:', e)
+      this.isReady = false
+    }
+  }
+
+  /**
+   * Advance animation by dt seconds and re-render the off-screen canvas.
+   * Called once per sprite per frame by the raycaster (_drawSpineOverlay).
+   *
+   * @param {number} dt — seconds since last frame
+   */
+  update (dt) {
+    if (!this.isReady || !this._spine || !this._app) return
+    this._spine.state.update(dt)
+    this._spine.state.apply(this._spine.skeleton)
+    this._spine.skeleton.updateWorldTransform()
+    this._app.render()
   }
 }
