@@ -179,6 +179,15 @@ export class GenericSpineAvatarInstance {
       }
     }
   }
+
+  /**
+   * Interface symmetry with SpineAvatarInstance.destroy(). 2D canvas — nothing
+   * GPU-side to free; just stop rendering and drop bone references.
+   */
+  destroy () {
+    this.isReady = false
+    this._bones  = null
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────

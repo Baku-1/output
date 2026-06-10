@@ -99,6 +99,9 @@ function _handlePos(payload) {
     if (payload.avatarUrl && payload.avatarUrl !== remoteCache[id].avatarUrl) {
       remoteCache[id].avatarUrl = payload.avatarUrl
       remoteCache[id].isAxie    = payload.isAxie ?? isAxieAvatarUrl(payload.avatarUrl)
+      // Release the old Spine slot/GPU resources before replacing (no-op for
+      // static Uint8Array textures — optional chaining covers both).
+      remoteCache[id].texture?.destroy?.()
       remoteCache[id].texture   = null
       _loadRemoteAvatar(id, payload.avatarUrl)
     }
@@ -192,6 +195,8 @@ export function interpolatePlayers(dt) {
   for (const id in remoteCache) {
     const p = remoteCache[id]
     if (now - p.lastSeen > PLAYER_TIMEOUT) {
+      // Release Spine slot/GPU resources (no-op for static textures)
+      p.texture?.destroy?.()
       delete remoteCache[id]
       updatePlayerCount()
       continue

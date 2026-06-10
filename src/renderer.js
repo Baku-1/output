@@ -6,15 +6,21 @@
 //   Floor/Ceiling → Wall DDA (fills zBuf) → Sprite Cast (checks zBuf)
 //   → putImageData (upscale) → Canvas overlays (crosshair, vignette, name tags)
 // ═══════════════════════════════════════════════════════════════
-import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, STORE_GEOMETRY } from './map.js'
+import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, STORE_GEOMETRY,
+         WING_COLORS, getZone, TUTORIAL_STORES } from './map.js'
 import { RENDER_SCALE, WALL_HEIGHT, AVATAR_TEX_SIZE, AVATAR_SPRITE_SCALE, WALL_TEX_SIZE, STORE_TEX_SIZE } from './config.js'
-import { WING_COLORS, getZone } from './map.js'
 import { NPCS, NPC_CHARACTERS } from './npcs.js'
 import { SpineAvatarInstance, SPINE_CANVAS_W, SPINE_CANVAS_H, SPINE_CANVAS_FEET_Y } from './spineAvatar.js'
 import { GenericSpineAvatarInstance } from './genericSpineAvatar.js'
+import { renderAll as renderSpineSlots } from './spineAvatarManager.js'
 
 // ── Per-frame delta tracker — updated in renderFrame() ───────────
 let _lastRenderT = 0
+
+// ── Merged store view: game stores + tutorial stores ─────────────
+// Tutorial stores render with the same procedural storefront texture
+// pipeline as game stores but live in a separate data object (map.js).
+const _allStores = { ...STORES, ...TUTORIAL_STORES }
 
 
 // ── Utility ───────────────────────────────────────────────────
@@ -80,7 +86,7 @@ function _drawCover(c, img, dx, dy, dw, dh) {
 
 // imgs = { poster_left, poster_right, logo } — all optional HTMLImageElements
 function makeStoreTex(storeId, imgs={}) {
-  const store = STORES[storeId]
+  const store = _allStores[storeId] ?? { name: '?', hex: '#888888' }
   const [sr, sg, sb] = hexRGB(store.hex)
   const S  = STORE_TEX_SIZE        // e.g. 256
   const sc = S / 128               // scale factor — all pixel coords × sc
@@ -196,7 +202,7 @@ export async function initStoreAssets() {
 }
 
 const STORE_RGB = {}
-Object.entries(STORES).forEach(([id, s]) => { STORE_RGB[id] = hexRGB(s.hex) })
+Object.entries(_allStores).forEach(([id, s]) => { STORE_RGB[id] = hexRGB(s.hex) })
 
 // Wall = 64×64, store = 128×128 — look up per cell type
 function texSz(wallType) { return wallType === CELL.WALL ? WALL_TEX_SIZE : STORE_TEX_SIZE }
@@ -256,6 +262,14 @@ export function renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCac
     if (mx < 0 || mx >= MAP_W || my < 0 || my >= MAP_H) break
     if (MAP[my][mx] !== CELL.FLOOR) break
     camX = tx; camY = ty; camDist = d
+  }
+
+  // Advance the self avatar BEFORE renderFrame so the single shared-canvas
+  // render (renderSpineSlots inside renderFrame) includes this frame's pose.
+  // First person never reaches here — self pose intentionally frozen (spec R2 HIGH-1).
+  if (selfTexture instanceof SpineAvatarInstance || selfTexture instanceof GenericSpineAvatarInstance) {
+    selfTexture.update(t - (selfTexture._lastT ?? t))
+    selfTexture._lastT = t
   }
 
   // Render world from offset camera — no self-sprite in the billboard pass
@@ -332,10 +346,10 @@ function _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, play
   ctx.imageSmoothingQuality = 'high'
 
   if (selfTexture instanceof SpineAvatarInstance || selfTexture instanceof GenericSpineAvatarInstance) {
-    selfTexture.update(t - (selfTexture._lastT || 0))
-    selfTexture._lastT = t
+    // Animation advanced in renderThirdPerson; slot rendered by renderSpineSlots().
     if (selfTexture.isReady && selfTexture._canvas) {
-      ctx.drawImage(selfTexture._canvas, dx, dy, spriteW, spriteH)
+      const srcR = selfTexture._srcRect ?? { x: 0, y: 0, w: selfTexture._canvas.width, h: selfTexture._canvas.height }
+      ctx.drawImage(selfTexture._canvas, srcR.x, srcR.y, srcR.w, srcR.h, dx, dy, spriteW, spriteH)
     }
   } else if (selfTexture) {
     if (!_drawSelfOverlay._cache || _drawSelfOverlay._cacheSrc !== selfTexture) {
@@ -494,14 +508,29 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
   // Only SpineAvatarInstance sprites; static textures were handled above.
   const W2full = canvas.width, H2full = canvas.height
   const now2 = Date.now()
-  ctx.save()
-  ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'high'
+
+  // Pass 1 — advance ALL Spine animations before the single shared render.
+  // Off-screen avatars now animate too (R2 LOW-6: accepted — no pose-pop when
+  // someone walks into view; revisit if profiling objects).
+  const spineSprites = []
   for (const sp of Object.values(remoteCache)) {
     if (now2 - sp.lastSeen > 6000) continue
     if (sp.texture instanceof SpineAvatarInstance || sp.texture instanceof GenericSpineAvatarInstance) {
-      _drawSpineOverlay(ctx, W2full, H2full, posX, posY, dirX, dirY, plX, plY, sp, dt)
+      sp.texture.update(dt)
+      spineSprites.push(sp)
     }
+  }
+
+  // ONE shared-context render for every slot (self included — advanced in
+  // renderThirdPerson before this call). No-op when nothing changed.
+  renderSpineSlots()
+
+  // Pass 2 — composite each slot into the scene
+  ctx.save()
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  for (const sp of spineSprites) {
+    _drawSpineOverlay(ctx, W2full, H2full, posX, posY, dirX, dirY, plX, plY, sp)
   }
   ctx.restore()
 
@@ -614,16 +643,15 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, self
 //
 // Parameters use full canvas dimensions (W, H), not render-scale (RW, RH).
 // zBuf is in render-scale coords — map with scaleX = RW / W.
-function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp, dt) {
+function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp) {
   const invDet = 1.0 / (plX * dirY - dirX * plY)
   const sx = sp.x - posX, sy = sp.y - posY
   const tx = invDet * ( dirY * sx - dirX * sy)
   const ty = invDet * (-plY  * sx + plX  * sy)
   if (ty <= 0.1) return
 
-  // Advance Spine animation — once per sprite per frame
-  sp.texture.update(dt)
-  // _canvas is the live offscreen canvas Spine renders into each update()
+  // Animation already advanced in renderFrame pass 1; all slots rendered by
+  // renderSpineSlots(). _canvas is the SHARED canvas; _srcRect selects the slot.
   if (!sp.texture.isReady || !sp.texture._canvas) return
 
   // Billboard screen rect (full-res coords)
@@ -689,9 +717,12 @@ function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp, dt) 
   ctx.save()
   ctx.clip()
 
-  // ── drawImage — Spine's live _canvas → billboard rect ───────
+  // ── drawImage — slot region of the shared canvas → billboard rect ───────
+  // 9-arg source-rect form; full-canvas fallback covers GenericSpineAvatarInstance
+  // (own 2D canvas, no _srcRect).
   ctx.globalAlpha = fog
-  ctx.drawImage(sp.texture._canvas, dxStart, dyStart, spriteW, spriteH)
+  const srcR = sp.texture._srcRect ?? { x: 0, y: 0, w: sp.texture._canvas.width, h: sp.texture._canvas.height }
+  ctx.drawImage(sp.texture._canvas, srcR.x, srcR.y, srcR.w, srcR.h, dxStart, dyStart, spriteW, spriteH)
 
   ctx.restore()
 }
@@ -979,7 +1010,7 @@ export function renderBirdsEye(posX, posY, dirX, dirY, remoteCache) {
         ctx.fillStyle = 'rgba(175,180,195,.9)'
       } else {
         const sid = CELL_STORE[cell]
-        ctx.fillStyle = sid ? STORES[sid].hex : '#555'
+        ctx.fillStyle = sid ? (_allStores[sid]?.hex ?? '#555') : '#555'
       }
       ctx.fillRect(mx * cellPx, my * cellPx, cellPx, cellPx)
     }

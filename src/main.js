@@ -11,7 +11,7 @@ import { initGroupChat, toggleGroupChat, closeGroupChat, isGroupChatOpen } from 
 import { initRenderer, renderFrame, renderThirdPerson, renderBirdsEye, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
 import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
-import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, getZone } from './map.js'
+import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, TUTORIAL_STORES, getZone } from './map.js'
 import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE, GROQ_API_KEY, GROQ_MODEL } from './config.js'
 import { initTouch, isTouchDevice, touchMoveX, touchMoveY, consumeRotation, setInteractCallback, setInteractVisible } from './touch.js'
 
@@ -140,11 +140,13 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
       // sessionStorage — bypass IDB so we always show what they actually picked.
       // If they skipped the picker, fall back to IDB cache for fast startup.
       const _selfUrl = () => sessionStorage.getItem(`avatar-url:${address}`) || null
-      loadPlayerAvatar(address, tex => { selfTexture = tex }, _selfUrl())
+      // isSelf=true → reserved slot 0 on the shared Spine context (spec R2 MEDIUM-3)
+      loadPlayerAvatar(address, tex => { selfTexture = tex }, _selfUrl(), null, true)
       // On subsequent avatar changes (rare — avatar change while already in world):
       window.addEventListener('avatar-changed', (e) => {
         if (e.detail.address !== address) return
-        loadPlayerAvatar(address, tex => { selfTexture = tex }, _selfUrl())
+        selfTexture?.destroy?.()   // release old slot before re-acquiring
+        loadPlayerAvatar(address, tex => { selfTexture = tex }, _selfUrl(), null, true)
       })
     }
 
@@ -170,7 +172,10 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
 function doInteract() {
   if (panelOpen()) return
   if (nearNPC)         openNPCDialogue(nearNPC)
-  else if (nearStore)  openStore(nearStore)
+  else if (nearStore) {
+    if (TUTORIAL_STORES[nearStore]) openTutorialPanel(nearStore)
+    else                            openStore(nearStore)
+  }
   else if (nearPlayer) openDMPanel(nearPlayer.id, shortAddress(nearPlayer.id))
 }
 setInteractCallback(doInteract)
@@ -187,7 +192,7 @@ document.addEventListener('keydown', e => {
     e.preventDefault()
     toggleGroupChat()
   }
-  if (e.code === 'Escape') { closeStore(); closeNPCDialogue(); closeDMPanel(); closeGroupChat() }
+  if (e.code === 'Escape') { closeStore(); closeNPCDialogue(); closeDMPanel(); closeGroupChat(); closeTutorialPanel() }
 })
 document.addEventListener('keyup', e => { keys[e.code] = false })
 
@@ -242,6 +247,11 @@ function update(dt) {
     if (walkable(posX, ny)) posY = ny
   }
 
+  // Tutorial splash — dismiss on movement input
+  if (_tutorialSplashActive && (Math.abs(mx) > 0 || Math.abs(my) > 0)) {
+    _dismissTutorialSplash()
+  }
+
   // Multiplayer
   interpolatePlayers(dt)
   broadcastPosition(posX, posY, dirX, dirY)
@@ -266,7 +276,7 @@ function update(dt) {
   if (found !== nearStore) {
     nearStore = found
     const toast = document.getElementById('toast')
-    if (found) { document.getElementById('tn').textContent = STORES[found].name; toast.classList.add('on') }
+    if (found) { document.getElementById('tn').textContent = (STORES[found] ?? TUTORIAL_STORES[found]).name; toast.classList.add('on') }
     else toast.classList.remove('on')
     setInteractVisible(!!found || !!nearNPC, found ? 'ENTER' : nearNPC ? 'TALK' : '')
   }
@@ -322,6 +332,14 @@ function update(dt) {
     }
   }
 
+  // Tutorial splash — one-shot trigger entering the south connecting hall
+  if (!_tutorialSplashShown
+      && posX >= 30.0 && posX <= 35.5
+      && posY >= 73.5 && posY <= 76.5) {
+    _tutorialSplashShown = true
+    _showTutorialSplash()
+  }
+
   // Zone HUD
   const zone = getZone(posX, posY)
   document.getElementById('hz').textContent       = zone.id
@@ -358,6 +376,7 @@ function loop(ts) {
 // ═══════════════════════════════════════════════════════════════
 function panelOpen() {
   return document.getElementById('sp').classList.contains('on')
+      || document.getElementById('tutorial-panel').classList.contains('on')
       || isDMPanelOpen()
       || isGroupChatOpen()
 }
@@ -553,6 +572,77 @@ function openStore(id) {
 function closeStore() { document.getElementById('sp').classList.remove('on') }
 document.getElementById('spx').addEventListener('click', closeStore)
 document.getElementById('sp').addEventListener('click', function(e) { if (e.target===this) closeStore() })
+
+// ═══════════════════════════════════════════════════════════════
+// TUTORIAL WING — panel + splash
+// ═══════════════════════════════════════════════════════════════
+function openTutorialPanel(id) {
+  const store = TUTORIAL_STORES[id]; if (!store) return
+  document.getElementById('tp-title').textContent = store.name
+
+  const stepsEl = document.getElementById('tp-steps')
+  stepsEl.innerHTML = ''
+  store.steps.forEach((step, i) => {
+    const div = document.createElement('div')
+    div.className = 'tp-step'
+    const h3 = document.createElement('h3')
+    h3.textContent = `${i + 1}. ${step.heading}`
+    const p  = document.createElement('p')
+    p.textContent = step.body
+    div.appendChild(h3); div.appendChild(p)
+    stepsEl.appendChild(div)
+  })
+
+  document.getElementById('tutorial-panel').classList.add('on')
+  document.exitPointerLock()
+  // No broadcastStoreEntry() — tutorial visits are private
+}
+
+function closeTutorialPanel() {
+  document.getElementById('tutorial-panel').classList.remove('on')
+}
+
+document.getElementById('tutorial-panel').addEventListener('click', function(e) {
+  if (e.target === this) closeTutorialPanel()
+})
+document.getElementById('tp-close').addEventListener('click', closeTutorialPanel)
+
+// ── Splash popup — one-shot "TUTORIALS" hint at the connecting hall ──
+let _tutorialSplashShown  = false
+let _tutorialSplashEl     = null
+let _tutorialSplashTimer  = null
+let _tutorialSplashActive = false
+
+function _ensureTutorialSplash() {
+  if (_tutorialSplashEl) return _tutorialSplashEl
+  const el = document.createElement('div')
+  el.id = 'tutorial-splash'
+  const heading  = document.createElement('div'); heading.id = 'ts-heading'
+  const subtitle = document.createElement('div'); subtitle.id = 'ts-subtitle'
+  heading.textContent  = 'TUTORIALS'
+  subtitle.textContent = 'Five interactive guides ahead  →'
+  el.appendChild(heading); el.appendChild(subtitle)
+  document.body.appendChild(el)
+  el.addEventListener('click', _dismissTutorialSplash)
+  _tutorialSplashEl = el
+  return el
+}
+
+function _showTutorialSplash() {
+  if (panelOpen()) return   // don't overlay a modal that's already open
+  const el = _ensureTutorialSplash()
+  el.classList.add('on')
+  _tutorialSplashActive = true
+  clearTimeout(_tutorialSplashTimer)
+  _tutorialSplashTimer = setTimeout(_dismissTutorialSplash, 4000)
+}
+
+function _dismissTutorialSplash() {
+  _tutorialSplashEl?.classList.remove('on')
+  _tutorialSplashActive = false
+  clearTimeout(_tutorialSplashTimer)
+  _tutorialSplashTimer = null
+}
 
 document.getElementById('npc-send').addEventListener('click', sendNPCMessage)
 document.getElementById('npc-input').addEventListener('keydown', e => { if (e.key==='Enter') { sendNPCMessage() } e.stopPropagation() })

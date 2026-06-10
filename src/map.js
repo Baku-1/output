@@ -104,6 +104,12 @@ export const CELL = {
   TR: 29,  // Tri-Fields
   AL: 30,  // Across Lunacia
   TA: 31,  // Tacticards
+  // Tutorial Wing — cell IDs 33–37
+  TU1: 33,  // The Outlet overview
+  TU2: 34,  // Trading (Seaport P2P)
+  TU3: 35,  // DM Chat
+  TU4: 36,  // Group Chat
+  TU5: 37,  // Guild Halls & Collabs
 }
 
 export const CELL_STORE = {
@@ -121,6 +127,12 @@ export const CELL_STORE = {
   [27]:'skysmash',       [28]:'axiewar',
   [29]:'trifields',      [30]:'acrosslunacia',
   [31]:'tacticards',
+  // Tutorial Wing
+  [33]:'tutorial_overview',
+  [34]:'tutorial_trading',
+  [35]:'tutorial_dm',
+  [36]:'tutorial_group',
+  [37]:'tutorial_guild',
 }
 
 // ── Map dimensions ────────────────────────────────────────────
@@ -216,6 +228,16 @@ carve(43, 44, 64, 56)        // EAST LOBBY             x:43-64, y:44-56 (22w)
 // W8  Action East  (x=33, y:3-6)  — y=2 north corner and y=7 stay wall
 ;[3,4,5,6].forEach(y  => place(33, y, 30))   // Across Lunacia
 
+// ── Tutorial Wing — East South Lobby (x:36-51, y:72-78) ──────
+// North wall (y=71): 2-gap + 4-store + 4-gap + 4-store + 2-gap
+;[38,39,40,41].forEach(x => place(x, 71, CELL.TU1))  // The Outlet overview
+;[46,47,48,49].forEach(x => place(x, 71, CELL.TU2))  // Trading
+// South wall (y=79) — mirror of north wall
+;[38,39,40,41].forEach(x => place(x, 79, CELL.TU3))  // DM Chat
+;[46,47,48,49].forEach(x => place(x, 79, CELL.TU4))  // Group Chat
+// East wall (x=52): centered on lobby midpoint y=75
+;[73,74,75,76].forEach(y => place(52, y, CELL.TU5))  // Guild Halls & Collabs
+
 // ── Zone lookup ───────────────────────────────────────────────
 export function getZone(x, y) {
   if (y < 8 && x >= CX1 && x <= CX2 && y <= 2)
@@ -233,6 +255,8 @@ export function getZone(x, y) {
   if (x >= CX1 && x <= CX2 && y >= 25 && y <= 44)
     return { id: 'AXIE HALL', label: '🎮  AXIE INFINITY WING' }
   if (y >= 45 && y <= 57)                                      return { id: 'FOOD COURT',    label: 'FOOD COURT' }
+  if (y > 71 && y < 79 && x >= 36 && x <= 51)
+    return { id: 'TUTORIAL WING', label: '📖  TUTORIAL WING  · Learn the basics' }
   if (y > 71)                                                   return { id: 'LOBBY',         label: 'LOBBY' }
   if (y >= 58 && x >= CX1-1 && x <= CX2+1)                    return { id: 'MAIN HALL',     label: 'MAIN HALL' }
   if (y >= 48 && y <= 52 && x <= 10)                           return { id: 'RPG WING',      label: '⚔  RPG WING  · Adventure' }
@@ -283,6 +307,93 @@ export const STORE_GEOMETRY = {
   tacticards:    { ax:10, ay: 3, dir:'v', size:4 },
   // W8  Action East  (x=33, y:3-6)
   acrosslunacia: { ax:33, ay: 3, dir:'v', size:4 },
+  // Tutorial Wing
+  tutorial_overview: { ax:38, ay:71, dir:'h', size:4 },
+  tutorial_trading:  { ax:46, ay:71, dir:'h', size:4 },
+  tutorial_dm:       { ax:38, ay:79, dir:'h', size:4 },
+  tutorial_group:    { ax:46, ay:79, dir:'h', size:4 },
+  tutorial_guild:    { ax:52, ay:73, dir:'v', size:4 },
+}
+
+// ── Tutorial Wing stores ──────────────────────────────────────
+// Separate from STORES — no game metadata (url, genre, chain, players, cost).
+// Each entry: name + hex for the raycaster storefront texture, plus
+// 3-5 short steps rendered by the tutorial panel (main.js openTutorialPanel).
+export const TUTORIAL_STORES = {
+  tutorial_overview: {
+    name: 'The Outlet',
+    hex:  '#00e5ff',
+    steps: [
+      { heading: 'Welcome to The Outlet',
+        body: 'This is a 3D mall for the Ronin ecosystem. Each storefront is a game you can discover and launch from right here inside the world.' },
+      { heading: 'Moving around',
+        body: 'Walk with WASD or the on-screen joystick. Use the mouse or drag to look. Arrow keys also work for turning.' },
+      { heading: 'Entering a store',
+        body: 'Walk up to any storefront until the name appears at the bottom of your screen. Press F or tap Interact to open the store panel, then hit Play to launch.' },
+      { heading: 'Meeting other players',
+        body: 'Other players appear as their NFT avatars. Walk close to someone and press F to open a direct message. You can also trade NFTs through DMs.' },
+      { heading: 'Getting around',
+        body: "Check the minimap (bottom-right corner) to see where you are. The zone label in the top-left tells you which wing you're in. Press T to open nearby group chat." },
+    ],
+  },
+  tutorial_trading: {
+    name: 'Trading',
+    hex:  '#f5a623',
+    steps: [
+      { heading: 'Find your trade partner',
+        body: 'Walk up to the player you want to trade with and press F to open a DM with them.' },
+      { heading: 'Send a trade offer',
+        body: 'In the DM panel, tap the trade icon (↔) to open the NFT picker. Select the NFT you want to offer and confirm.' },
+      { heading: 'They receive a trade card',
+        body: 'The other player sees your offer as a trade card in their DM panel. They can review it before accepting.' },
+      { heading: 'On-chain settlement',
+        body: 'Tap Accept to approve the trade via Seaport on Ronin. Both wallets must sign. The exchange is atomic — either both NFTs move or neither does.' },
+      { heading: 'Notes',
+        body: 'Trade offers expire after 24 hours. If you receive an offer while exploring, a notification appears at the top of your screen — press Escape to view it.' },
+    ],
+  },
+  tutorial_dm: {
+    name: 'DM Chat',
+    hex:  '#7ed321',
+    steps: [
+      { heading: 'Find someone to message',
+        body: 'Walk close to another player until their shortened address appears in the toast at the bottom of your screen.' },
+      { heading: 'Open a DM',
+        body: 'Press F or tap Interact to open a direct message. Type your message and press Enter to send.' },
+      { heading: 'While DM is open',
+        body: 'Movement and pointer lock are paused while the DM panel is open. Press Escape or click the × to close and return to the world.' },
+      { heading: 'Session history',
+        body: 'Messages are delivered peer-to-peer via Ably. Chat history lasts for the current session — it clears when you refresh the page.' },
+    ],
+  },
+  tutorial_group: {
+    name: 'Group Chat',
+    hex:  '#a855f7',
+    steps: [
+      { heading: 'Open group chat',
+        body: 'Press T or tap the chat icon to open the proximity group chat. Everyone nearby can see the conversation.' },
+      { heading: 'Proximity-based',
+        body: "The group chat reflects your current area of the mall. Move into a new wing and you'll be chatting with whoever is in that space." },
+      { heading: 'While chat is open',
+        body: 'The world keeps rendering but movement is paused. Press T again or hit Escape to close the panel and resume exploring.' },
+      { heading: 'Keep in mind',
+        body: 'Group chat is visible to all nearby players. Use DM for private conversations with a specific person.' },
+    ],
+  },
+  tutorial_guild: {
+    name: 'Guild Halls',
+    hex:  '#ff6b35',
+    steps: [
+      { heading: 'What is a Guild Hall?',
+        body: "Guild Halls are private rooms inside The Outlet, accessible only to holders of a specific guild's NFT on Ronin." },
+      { heading: 'Finding the entrance',
+        body: 'Look for hidden doors embedded between storefronts. Walk close to one and press F — the entrance is proximity-triggered.' },
+      { heading: 'Inside the hall',
+        body: 'Each hall has its own private group chat, NFT-holder guest list, and a main wall where the guild owner can display content.' },
+      { heading: 'Collabs',
+        body: 'Two guilds can share a joint event space or co-host sessions. Watch for collab announcements from your favourite Ronin projects.' },
+    ],
+  },
 }
 
 // ── Minimap zone colours ────────────────────────────────────────────────

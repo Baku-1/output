@@ -386,7 +386,7 @@ export function makeProceduralAvatar(address) {
 // @param {function}    cb        — callback(tex)
 // @param {string|null} imageUrl  — explicit URL (remote broadcast path)
 // @param {object|null} nft       — { contractAddress, tokenId } if available
-export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null) {
+export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null, isSelf = false) {
   // 1. IndexedDB cache — local player only (remote URL may differ from cached bake)
   if (!imageUrl) {
     const cached = await avatarCache.get(address)
@@ -408,22 +408,26 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null)
       if (tokenId) {
         const genes = await getAxieGenes(tokenId)
         if (genes) {
-          const inst = new SpineAvatarInstance()
+          const inst = new SpineAvatarInstance({ isSelf })
           await inst.init(genes)
           if (inst.isReady) {
-            // Return the live SpineAvatarInstance — renderer detects via .pixelData
+            // Return the live SpineAvatarInstance — slot on the shared context
             return cb(inst)
           }
-          // init() failed — fall through below
+          // init() failed — release anything the failed attempt acquired
+          // (slot, Spine) before constructing the next attempt. Never two
+          // live instances per avatar (spec R2 amendment 6).
+          inst.destroy()
         }
       }
 
       // ── Classic pre-baked assets (assets.axieinfinity.com, no auth needed) ──
       // Covers: genes unavailable, API key absent, or mixer init failure.
       if (tokenId) {
-        const classicInst = new SpineAvatarInstance()
+        const classicInst = new SpineAvatarInstance({ isSelf })
         await classicInst.initFromClassicId(tokenId)
         if (classicInst.isReady) return cb(classicInst)
+        classicInst.destroy()
       }
 
       // ── 6-bone rig fallback (Spine unavailable or classic assets 404) ──
