@@ -11,7 +11,7 @@ import { initGroupChat, toggleGroupChat, closeGroupChat, isGroupChatOpen } from 
 import { initRenderer, renderFrame, renderThirdPerson, renderBirdsEye, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
 import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
-import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, TUTORIAL_STORES, getZone } from './map.js'
+import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, TUTORIAL_STORES, ZONE_SPLASH, getZone } from './map.js'
 import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE, GROQ_API_KEY, GROQ_MODEL } from './config.js'
 import { initTouch, isTouchDevice, touchMoveX, touchMoveY, consumeRotation, setInteractCallback, setInteractVisible } from './touch.js'
 
@@ -344,6 +344,24 @@ function update(dt) {
   const zone = getZone(posX, posY)
   document.getElementById('hz').textContent       = zone.id
   document.getElementById('zone-lbl').textContent = zone.label !== zone.id ? zone.label : ''
+
+  // One-time welcome splash — first update frame after Enter
+  if (!_welcomeShown) {
+    _welcomeShown = true
+    _showWelcomeSplash()
+  }
+
+  // Zone-entry splash — movement-gated so it fires while walking IN, and
+  // re-fires after the 2h cooldown the moment an idle player starts moving.
+  if (ml > 0) {
+    const cfg = ZONE_SPLASH[zone.id]
+    const nowMs = Date.now()
+    if (cfg && nowMs - (_zoneSplashLast[zone.id] ?? -Infinity) > ZONE_SPLASH_COOLDOWN
+            && !panelOpen() && !_tutorialSplashActive) {
+      _zoneSplashLast[zone.id] = nowMs
+      _showZoneSplash(cfg)
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -642,6 +660,60 @@ function _dismissTutorialSplash() {
   _tutorialSplashActive = false
   clearTimeout(_tutorialSplashTimer)
   _tutorialSplashTimer = null
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ZONE-ENTRY SPLASH — 5s hall announcement (spec R2 amendment 1)
+// ═══════════════════════════════════════════════════════════════
+const ZONE_SPLASH_MS       = 5000
+const ZONE_SPLASH_COOLDOWN = 2 * 60 * 60 * 1000   // 2h per-zone re-show
+const _zoneSplashLast = {}   // zone.id → Date.now() last shown
+let _zoneSplashEl    = null
+let _zoneSplashTimer = null
+let _welcomeShown    = false
+
+function _ensureZoneSplash() {
+  if (_zoneSplashEl) return _zoneSplashEl
+  const el = document.createElement('div')
+  el.id = 'zone-splash'
+  const title = document.createElement('div'); title.id = 'zs-title'
+  const sub   = document.createElement('div'); sub.id = 'zs-sub'
+  el.appendChild(title); el.appendChild(sub)
+  document.body.appendChild(el)
+  el.addEventListener('click', _dismissZoneSplash)
+  _zoneSplashEl = el
+  return el
+}
+
+function _showZoneSplash(cfg) {
+  const el = _ensureZoneSplash()
+  el.classList.remove('welcome')
+  document.getElementById('zs-title').textContent = cfg.title
+  document.getElementById('zs-sub').textContent   = cfg.sub
+  el.classList.add('on')
+  clearTimeout(_zoneSplashTimer)
+  _zoneSplashTimer = setTimeout(_dismissZoneSplash, ZONE_SPLASH_MS)
+}
+
+// Welcome splash — THE OUTLET logo treatment, once per session on spawn
+function _showWelcomeSplash() {
+  const el = _ensureZoneSplash()
+  el.classList.add('welcome')
+  const title = document.getElementById('zs-title')
+  title.textContent = ''
+  const the = document.createElement('span'); the.className = 'zs-the'; the.textContent = 'THE '
+  const out = document.createElement('span'); out.className = 'zs-out'; out.textContent = 'OUTLET'
+  title.appendChild(the); title.appendChild(out)
+  document.getElementById('zs-sub').textContent = 'WebZone 001 · Welcome to the mall'
+  el.classList.add('on')
+  clearTimeout(_zoneSplashTimer)
+  _zoneSplashTimer = setTimeout(_dismissZoneSplash, ZONE_SPLASH_MS)
+}
+
+function _dismissZoneSplash() {
+  _zoneSplashEl?.classList.remove('on')
+  clearTimeout(_zoneSplashTimer)
+  _zoneSplashTimer = null
 }
 
 document.getElementById('npc-send').addEventListener('click', sendNPCMessage)

@@ -305,7 +305,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
   margin:0;font-size:11px;letter-spacing:.1em;
   color:rgba(0,229,255,.5);text-transform:uppercase;
 }
-#tof-nft-list{
+.tof-grid{
   display:flex;flex-wrap:wrap;gap:8px;max-height:160px;
   overflow-y:auto;
 }
@@ -320,13 +320,6 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .tof-nft-card span{font-size:10px;color:rgba(255,255,255,.5);display:block;margin-top:3px}
 .tof-loading,.tof-empty,.tof-error{font-size:12px;color:rgba(255,255,255,.35)}
 .tof-error{color:rgba(255,100,100,.7)}
-#tof-want-id{
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
-  border-radius:4px;padding:7px 10px;color:#fff;
-  font-family:'Rajdhani',sans-serif;font-size:13px;outline:none;width:100%;
-  box-sizing:border-box;
-}
-#tof-want-id:focus{border-color:rgba(0,229,255,.4)}
 .tof-hint{margin:0;font-size:10px;color:rgba(255,255,255,.25);line-height:1.4}
 #tof-send{
   padding:9px;background:rgba(0,229,255,.12);
@@ -597,6 +590,46 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
   font-size: 0.88rem; line-height: 1.55;
   color: rgba(255,255,255,0.62); margin: 0;
 }
+
+/* ── Zone-entry splash — 5s hall announcement banner ────────── */
+#zone-splash {
+  display: none;
+  position: fixed;
+  top: 18%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 140;
+  text-align: center;
+  pointer-events: auto;
+  cursor: pointer;
+}
+#zone-splash.on { display: block; animation: zsfade 0.35s ease; }
+@keyframes zsfade { from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+                    to   { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+#zs-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 2.2rem; font-weight: 800;
+  color: #00e5ff;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 32px rgba(0,229,255,0.55);
+}
+#zs-sub {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.12em;
+  margin-top: 4px;
+}
+
+/* Welcome variant — THE OUTLET logo treatment on spawn */
+#zone-splash.welcome #zs-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 2.8rem; font-weight: 900;
+  letter-spacing: 0.15em;
+}
+#zone-splash.welcome .zs-the { color: #ffffff; }
+#zone-splash.welcome .zs-out { color: #00e5ff; }
 
 /* ── Tutorial Wing — splash popup ───────────────────────────── */
 #tutorial-splash {

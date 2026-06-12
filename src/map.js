@@ -76,6 +76,45 @@ export const STORES = {
   tacticards: { name:'Tacticards', wing:'AXIE ACTION', genre:'Card Game / Deck-Building', chain:'Ronin', players:'1,500', cost:'Free', hex:'#f7c75a',
     desc:"Digital tabletop card game built on custom Axie deck-building mechanics. Draft your hand, deploy your Axies, and outthink opponents in deep strategic card battles.",
     url:'https://hub.skymavis.com/greenlight' },
+
+  // ── Discovery Wing — Forged on Ronin (metadata: ronin-storefront-metadata.md) ──
+  ragnarokgenesis: { name:'Ragnarok Landverse: Genesis', wing:'DISCOVERY WING', genre:'MMORPG', chain:'Ronin', players:'—', cost:'Free', hex:'#358FBD',  // display variant of brand #0C3C54 (too dark for marquee)
+    desc:"Return to Rune Midgard in the free-to-play Web3 revival of Ragnarok Online. Quest, grind, and battle MVPs while mining on-chain resources and trading NFT gear and land on Ronin.",
+    url:'https://rolg.maxion.gg' },
+  ragnarokamerica: { name:'Ragnarok Landverse America', wing:'DISCOVERY WING', genre:'MMORPG', chain:'Ronin', players:'120,000+', cost:'Free', hex:'#326ED2',
+    desc:"Classic Ragnarok Online rebuilt for North and Latin America. Level up, party for MVP hunts, and earn ION tokens, with items and land minted as tradable NFTs on Ronin.",
+    url:'https://rola.maxion.gg' },
+  aquariumquest: { name:'Aquarium Quest', wing:'DISCOVERY WING', genre:'Cozy Pet Sim', chain:'Ronin', players:'—', cost:'Free', hex:'#0CB4FC',
+    desc:"Collect, breed, and raise aquatic pets in a cozy pixel-art aquarium. Decorate tanks, compete in arcade minigames, and earn RON rewards, with Founders Passes tradable on Ronin.",
+    url:'https://play.aquarium.quest' },
+  thebeacon: { name:'The Beacon', wing:'DISCOVERY WING', genre:'Action Roguelite', chain:'Ronin', players:'—', cost:'Free', hex:'#5A96D2',
+    desc:"Fight through procedurally generated dungeons in this fantasy action roguelite RPG. Clear runs solo or co-op, collect cosmetic and housing NFTs, and earn on-chain rewards via Ronin playtests.",
+    url:'https://thebeacon.gg' },
+
+  // ── Community Wing — Forged on Ronin ──────────────────────────
+  partyicons: { name:'PARTY ICONS', wing:'COMMUNITY WING', genre:'Party Battle Royale', chain:'Ronin', players:'—', cost:'Free', hex:'#FC3CCC',
+    desc:"Jump into a multiplayer party royale spanning Party Heist and 25+ Carnival Clash minigames. Compete, climb, and let OGX Hero NFT holders shape events in real time on Ronin.",
+    url:'https://www.partyicons.com' },
+  calamity: { name:'Calamity', wing:'COMMUNITY WING', genre:'2D Action MMORPG', chain:'Ronin', players:'—', cost:'Free', hex:'#FAD25A',
+    desc:"Carve your path through a hardcore 2D MMORPG of dungeons, bosses, and survival trials. Master three classes and 40+ skills, with Dragon Ring NFTs and player trading secured on Ronin.",
+    url:'https://app.calamity.online' },
+  fableborne: { name:'Fableborne', wing:'COMMUNITY WING', genre:'ARPG × Strategy', chain:'Ronin', players:'—', cost:'Free', hex:'#FAE646',
+    desc:"Raid enemy kingdoms in quick ARPG battles, then fortify your own. Diablo-meets-Clash strategy with collectible heroes, Kingdoms NFTs, and Essence earnings living on Ronin.",
+    url:'https://fableborne.com' },
+
+  // ── West Passage — Forged on Ronin ────────────────────────────
+  fishingfrenzy: { name:'Fishing Frenzy', wing:'WEST PASSAGE', genre:'Cozy Fishing RPG', chain:'Ronin', players:'25,000', cost:'Free', hex:'#18C8D8',
+    desc:"Cast, hook, and reel in a cozy onchain fishing RPG. Cook your catch, upgrade gear, and complete quests in a player-driven economy powered by Ronin and the $FISH token.",
+    url:'https://fishingfrenzy.co' },
+  craftworld: { name:'Craft World', wing:'WEST PASSAGE', genre:'Co-op Crafting Sim', chain:'Ronin', players:'—', cost:'Free', hex:'#FC3C54',
+    desc:"Team up with dynomites in a massive co-op crafting sim by VOYA Games. Gather, craft, and build artefacts in a post-apocalyptic world where every action feeds a player-owned onchain economy.",
+    url:'https://www.angrydynomiteslab.com/craft-world' },
+  chickensaga: { name:'Chicken Saga', wing:'WEST PASSAGE', genre:'Breed & Battle', chain:'Ronin', players:'—', cost:'Free', hex:'#FAE66E',
+    desc:"Collect, breed, battle, and trade NFT chickens with unique traits. Rub Genesis chickens for Feathers, craft items, and spend $COCK tokens in a player-driven economy on Ronin.",
+    url:'https://app.sabongsaga.com' },
+  grandarena: { name:'Grand Arena', wing:'WEST PASSAGE', genre:'AI Fantasy Autobattler', chain:'Ronin', players:'—', cost:'Free', hex:'#246CE4',
+    desc:"Draft Moki card NFTs and let AI-powered squads battle in daily fantasy-sports contests. Manage your roster, climb leaderboards, and chase seasonal prize pools on Ronin.",
+    url:'https://fantasy.grandarena.gg' },
 }
 
 // ── Cell ID constants ─────────────────────────────────────────
@@ -110,6 +149,18 @@ export const CELL = {
   TU3: 35,  // DM Chat
   TU4: 36,  // Group Chat
   TU5: 37,  // Guild Halls & Collabs
+  // Forged on Ronin wings — cell IDs 38–48
+  RG:  38,  // Ragnarok Landverse: Genesis
+  RA:  39,  // Ragnarok Landverse America
+  AQ2: 40,  // Aquarium Quest (AQ = Axie Quest)
+  BC:  41,  // The Beacon
+  PI:  42,  // PARTY ICONS
+  CL:  43,  // Calamity
+  FB:  44,  // Fableborne
+  FF:  45,  // Fishing Frenzy
+  CRW: 46,  // Craft World (CW = Culinary Wars)
+  CS:  47,  // Chicken Saga
+  GA:  48,  // Grand Arena
 }
 
 export const CELL_STORE = {
@@ -133,6 +184,13 @@ export const CELL_STORE = {
   [35]:'tutorial_dm',
   [36]:'tutorial_group',
   [37]:'tutorial_guild',
+  // Forged on Ronin wings
+  [38]:'ragnarokgenesis',  [39]:'ragnarokamerica',
+  [40]:'aquariumquest',    [41]:'thebeacon',
+  [42]:'partyicons',       [43]:'calamity',
+  [44]:'fableborne',       [45]:'fishingfrenzy',
+  [46]:'craftworld',       [47]:'chickensaga',
+  [48]:'grandarena',
 }
 
 // ── Map dimensions ────────────────────────────────────────────
@@ -184,6 +242,11 @@ carve(CX1, 1, CX2,  2)      // stub x:19-24, y:1-2
 // ── East Lobby — attached to east end of Strategy Wing ────────
 // Strategy Wing (x:33-42, y:48-52) opens into this lobby at x=42/43, y:48-52
 carve(43, 44, 64, 56)        // EAST LOBBY             x:43-64, y:44-56 (22w)
+
+// ── Forged on Ronin wings (2026-06-09 lineup) ─────────────────
+carve(1, 54, 10, 66)         // DISCOVERY WING   — connects to Food Court (floor x=11, y:54-57)
+carve(43, 57, 49, 66)        // COMMUNITY WING   — southern extension of East Lobby (floor y=56)
+carve(5, 72, 13, 78)         // WEST PASSAGE     — connects to Lobby (floor x=14)
 
 // ── Original store placements ─────────────────────────────────
 ;[58,59,60,61].forEach(y => { place(18, y, 16); place(25, y, 17) })   // Main Hall
@@ -238,6 +301,22 @@ carve(43, 44, 64, 56)        // EAST LOBBY             x:43-64, y:44-56 (22w)
 // East wall (x=52): centered on lobby midpoint y=75
 ;[73,74,75,76].forEach(y => place(52, y, CELL.TU5))  // Guild Halls & Collabs
 
+// ── Forged on Ronin storefronts ───────────────────────────────
+// Discovery Wing — west wall x=0 (dir 'v'), south wall y=67 (dir 'h')
+;[55,56,57,58].forEach(y => place(0, y, CELL.RG))    // Ragnarok Landverse: Genesis
+;[59,60,61,62].forEach(y => place(0, y, CELL.RA))    // Ragnarok Landverse America
+;[2,3,4,5].forEach(x  => place(x, 67, CELL.AQ2))     // Aquarium Quest
+;[6,7,8,9].forEach(x  => place(x, 67, CELL.BC))      // The Beacon
+// Community Wing — west wall x=42 (dir 'v'), east wall x=50 (dir 'v')
+;[58,59,60,61].forEach(y => place(42, y, CELL.PI))   // PARTY ICONS
+;[62,63,64,65].forEach(y => place(42, y, CELL.CL))   // Calamity
+;[58,59,60,61].forEach(y => place(50, y, CELL.FB))   // Fableborne
+// West Passage — north wall y=71 (dir 'h'), south wall y=79 (dir 'h')
+;[5,6,7,8].forEach(x   => place(x, 71, CELL.FF))     // Fishing Frenzy
+;[9,10,11,12].forEach(x=> place(x, 71, CELL.CRW))    // Craft World
+;[5,6,7,8].forEach(x   => place(x, 79, CELL.CS))     // Chicken Saga
+;[9,10,11,12].forEach(x=> place(x, 79, CELL.GA))     // Grand Arena
+
 // ── Zone lookup ───────────────────────────────────────────────
 export function getZone(x, y) {
   if (y < 8 && x >= CX1 && x <= CX2 && y <= 2)
@@ -254,14 +333,24 @@ export function getZone(x, y) {
     return { id: 'AXIE LOBBY', label: '🎮  AXIE INFINITY  · Lobby' }
   if (x >= CX1 && x <= CX2 && y >= 25 && y <= 44)
     return { id: 'AXIE HALL', label: '🎮  AXIE INFINITY WING' }
+  // Specific wings BEFORE the FOOD COURT band — the y:45-57 catch-all was
+  // shadowing RPG/STRATEGY (dead branches until 2026-06-09 fix).
+  if (y >= 48 && y <= 52 && x <= 10)                           return { id: 'RPG WING',      label: '⚔  RPG WING  · Adventure' }
+  if (y >= 48 && y <= 52 && x >= 33 && x <= 42)                return { id: 'STRATEGY WING', label: '🏗  STRATEGY WING  · Build' }
+  if (x <= 10 && y > 53 && y < 68)
+    return { id: 'DISCOVERY WING', label: '🧭  DISCOVERY WING  · New Worlds' }
+  if (x >= 42 && x <= 50 && y > 56 && y < 67)
+    return { id: 'COMMUNITY WING', label: '🎉  COMMUNITY WING  · Party & Co-op' }
+  // EAST LOBBY before the FOOD COURT band — same shadow bug as RPG/STRATEGY
+  // (previously only fired on its single y=44 row).
+  if (x >= 43 && x <= 64 && y >= 44 && y <= 56)               return { id: 'EAST LOBBY',    label: '🌐  EAST LOBBY' }
   if (y >= 45 && y <= 57)                                      return { id: 'FOOD COURT',    label: 'FOOD COURT' }
   if (y > 71 && y < 79 && x >= 36 && x <= 51)
     return { id: 'TUTORIAL WING', label: '📖  TUTORIAL WING  · Learn the basics' }
+  if (y > 71 && y < 80 && x >= 4 && x <= 13)
+    return { id: 'WEST PASSAGE', label: '🎣  WEST PASSAGE  · Arcade Row' }
   if (y > 71)                                                   return { id: 'LOBBY',         label: 'LOBBY' }
   if (y >= 58 && x >= CX1-1 && x <= CX2+1)                    return { id: 'MAIN HALL',     label: 'MAIN HALL' }
-  if (y >= 48 && y <= 52 && x <= 10)                           return { id: 'RPG WING',      label: '⚔  RPG WING  · Adventure' }
-  if (y >= 48 && y <= 52 && x >= 33 && x <= 42)                return { id: 'STRATEGY WING', label: '🏗  STRATEGY WING  · Build' }
-  if (x >= 43 && x <= 64 && y >= 44 && y <= 56)               return { id: 'EAST LOBBY',    label: '🌐  EAST LOBBY' }
   return { id: 'THE OUTLET', label: 'THE OUTLET' }
 }
 
@@ -313,6 +402,20 @@ export const STORE_GEOMETRY = {
   tutorial_dm:       { ax:38, ay:79, dir:'h', size:4 },
   tutorial_group:    { ax:46, ay:79, dir:'h', size:4 },
   tutorial_guild:    { ax:52, ay:73, dir:'v', size:4 },
+  // Discovery Wing
+  ragnarokgenesis:  { ax:0,  ay:55, dir:'v', size:4 },
+  ragnarokamerica:  { ax:0,  ay:59, dir:'v', size:4 },
+  aquariumquest:    { ax:2,  ay:67, dir:'h', size:4 },
+  thebeacon:        { ax:6,  ay:67, dir:'h', size:4 },
+  // Community Wing
+  partyicons:       { ax:42, ay:58, dir:'v', size:4 },
+  calamity:         { ax:42, ay:62, dir:'v', size:4 },
+  fableborne:       { ax:50, ay:58, dir:'v', size:4 },
+  // West Passage
+  fishingfrenzy:    { ax:5,  ay:71, dir:'h', size:4 },
+  craftworld:       { ax:9,  ay:71, dir:'h', size:4 },
+  chickensaga:      { ax:5,  ay:79, dir:'h', size:4 },
+  grandarena:       { ax:9,  ay:79, dir:'h', size:4 },
 }
 
 // ── Tutorial Wing stores ──────────────────────────────────────
@@ -409,4 +512,29 @@ export const WING_COLORS = {
   'AXIE ACTION':   '#ff4444',
   'FUTURE':        '#333333',
   'EAST LOBBY':    '#ff9800',
+  'DISCOVERY WING': '#3f8efc',
+  'COMMUNITY WING': '#ff5d8f',
+  'WEST PASSAGE':   '#29b6f6',
+  'TUTORIAL WING':  '#00e5ff',
+}
+
+// ── Zone-entry splash data ─────────────────────────────────────
+// 5s banner shown when the player walks into a hall. Re-shows after a 2h
+// per-zone cooldown (re-announces after long hangouts). Deliberately absent:
+// LOBBY (spawn — has the one-time welcome splash), TUTORIAL WING (bespoke
+// splash), THE OUTLET (catch-all), FUTURE.
+export const ZONE_SPLASH = {
+  'MAIN HALL':      { title: 'MAIN HALL',         sub: 'Pixels · Lumiterra' },
+  'FOOD COURT':     { title: 'FOOD COURT',        sub: 'Wild Forest · meet & trade' },
+  'AXIE LOBBY':     { title: 'AXIE INFINITY',     sub: "Origins · Atia's Legacy · Greenlight arcade" },
+  'AXIE HALL':      { title: 'AXIE HALL',         sub: "Origins · Atia's Legacy" },
+  'AXIE ARCADE':    { title: 'RACING & ARCADE',   sub: 'Axie Greenlight' },
+  'AXIE PUZZLE':    { title: 'PUZZLE & IDLE',     sub: 'Axie Greenlight · Den of Mysteries' },
+  'AXIE ACTION':    { title: 'ACTION & STRATEGY', sub: 'Axie Greenlight' },
+  'RPG WING':       { title: 'RPG WING',          sub: 'Apeiron · Last Odyssey' },
+  'STRATEGY WING':  { title: 'STRATEGY WING',     sub: 'Kaidro · The Machines Arena' },
+  'EAST LOBBY':     { title: 'EAST LOBBY',        sub: 'Gateway to the Community Wing' },
+  'DISCOVERY WING': { title: 'DISCOVERY WING',    sub: 'Ragnarok Landverse · Aquarium Quest · The Beacon' },
+  'COMMUNITY WING': { title: 'COMMUNITY WING',    sub: 'PARTY ICONS · Calamity · Fableborne' },
+  'WEST PASSAGE':   { title: 'WEST PASSAGE',      sub: 'Fishing Frenzy · Craft World · Chicken Saga · Grand Arena' },
 }
