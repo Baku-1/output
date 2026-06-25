@@ -6,113 +6,113 @@
 // ── Store data ────────────────────────────────────────────────
 export const STORES = {
   // ── Ronin flagship stores ─────────────────────────────────────
-  axie:      { name:'Axie Infinity: Origins', wing:'AXIE HALL',    genre:'Battle / Collect',  chain:'Ronin', players:'14,200', cost:'Free',   hex:'#ff6b35', desc:"The flagship of the Axie universe. Build a team of NFT Axies, master a deep card-battle system, and earn SLP and AXS tokens in ranked PvP play.", url:'https://hub.skymavis.com/games/axie-infinity-origins', assets: { poster_left:'/stores/axie/key_art_1.jpg', poster_right:'/stores/axie/key_art_2.jpg', logo:'/stores/axie/logo.jpg', banner:'/stores/axie/banner.jpg' } },
-  pixels:    { name:'Pixels',                 wing:'MAIN HALL',    genre:'RPG / Farming',     chain:'Ronin', players:'18,000', cost:'Free',   hex:'#7ed321', desc:"Farm, build, and explore in this open-world pixel RPG. Own land, grow resources, and trade in a player-driven economy on Ronin.",                  url:'https://play.pixels.xyz' },
-  lumiterra: { name:'Lumiterra',              wing:'MAIN HALL',    genre:'Action RPG',        chain:'Ronin', players:'6,800',  cost:'Free',   hex:'#f5a623', desc:"Multiplayer action RPG with survival crafting. Explore dungeons, harvest resources, and battle monsters with your NFT characters on Ronin.",         url:'https://marketplace.skymavis.com/games/lumiterra' },
-  wildforest: { name:'Wild Forest',           wing:'FOOD COURT',   genre:'RTS / Strategy',    chain:'Ronin', players:'9,200',  cost:'Free',   hex:'#2ecc71', desc:"Real-time strategy on Ronin. Build bases, command troops, and deploy powerful unit NFTs in fast-paced PvP battles. Earn WOFR tokens.",              url:'https://playwildforest.io' },
-  apeiron:   { name:'Apeiron',                wing:'RPG WING',     genre:'RPG / Roguelite',   chain:'Ronin', players:'5,100',  cost:'Free',   hex:'#8e44ad', desc:"Godgame roguelite RPG where you shape planets and command Apostles into battle. NFT planet ownership drives the Apeiron universe on Ronin.",      url:'https://apeiron.fooniemagus.com' },
-  lastodyssey:{ name:'Last Odyssey',          wing:'RPG WING',     genre:'Strategy / RPG',    chain:'Ronin', players:'3,400',  cost:'Free',   hex:'#1abc9c', desc:"Tactical strategy RPG set in a post-apocalyptic world. Command heroes, forge alliances, and compete for resources in this Ronin-native title.",    url:'https://lastodyssey.io' },
-  kaidro:    { name:'Kaidro: Clan Battles',   wing:'STRATEGY WING',genre:'Action / Battle',   chain:'Ronin', players:'4,600',  cost:'Free',   hex:'#e74c3c', desc:"Cyberpunk mech battle game. Choose your clan, pilot your Kaidro NFT, and fight for dominance in intense real-time arena combat on Ronin.",         url:'https://marketplace.skymavis.com/games/kaidro' },
-  machines:  { name:'The Machines Arena',     wing:'STRATEGY WING',genre:'MOBA / Shooter',    chain:'Ronin', players:'7,300',  cost:'Free',   hex:'#3498db', desc:"Top-down tactical MOBA shooter. Command robots, capture objectives, and battle in team-based arenas. Fast-paced Web3 competitive gaming on Ronin.", url:'https://marketplace.skymavis.com/games/the-machines-arena' },
+  axie:      { name:'Axie Infinity: Origins', wing:'AXIE FRANCHISE',    genre:'Battle / Collect',  chain:'Ronin', players:'14,200', cost:'Free',   hex:'#ff6b35', desc:"The flagship of the Axie universe. Build a team of NFT Axies, master a deep card-battle system, and earn SLP and AXS tokens in ranked PvP play.", url:'https://hub.skymavis.com/games/axie-infinity-origins', assets: { poster_left:'/stores/axie/key_art_1.jpg', poster_right:'/stores/axie/key_art_2.jpg', logo:'/stores/axie/logo.jpg', banner:'/stores/axie/banner.jpg' } },
+  pixels:    { name:'Pixels',                 wing:'SIMULATION HALL',    genre:'RPG / Farming',     chain:'Ronin', players:'18,000', cost:'Free',   hex:'#7ed321', desc:"Farm, build, and explore in this open-world pixel RPG. Own land, grow resources, and trade in a player-driven economy on Ronin.",                  url:'https://play.pixels.xyz' },
+  lumiterra: { name:'Lumiterra',              wing:'SIMULATION HALL',    genre:'Action RPG',        chain:'Ronin', players:'6,800',  cost:'Free',   hex:'#f5a623', desc:"Multiplayer action RPG with survival crafting. Explore dungeons, harvest resources, and battle monsters with your NFT characters on Ronin.",         url:'https://marketplace.skymavis.com/games/lumiterra' },
+  wildforest: { name:'Wild Forest',           wing:'STRATEGY HALL',   genre:'RTS / Strategy',    chain:'Ronin', players:'9,200',  cost:'Free',   hex:'#2ecc71', desc:"Real-time strategy on Ronin. Build bases, command troops, and deploy powerful unit NFTs in fast-paced PvP battles. Earn WOFR tokens.",              url:'https://playwildforest.io' },
+  apeiron:   { name:'Apeiron',                wing:'ADVENTURE HALL',     genre:'RPG / Roguelite',   chain:'Ronin', players:'5,100',  cost:'Free',   hex:'#8e44ad', desc:"Godgame roguelite RPG where you shape planets and command Apostles into battle. NFT planet ownership drives the Apeiron universe on Ronin.",      url:'https://apeiron.fooniemagus.com' },
+  lastodyssey:{ name:'Last Odyssey',          wing:'ADVENTURE HALL',     genre:'Strategy / RPG',    chain:'Ronin', players:'3,400',  cost:'Free',   hex:'#1abc9c', desc:"Tactical strategy RPG set in a post-apocalyptic world. Command heroes, forge alliances, and compete for resources in this Ronin-native title.",    url:'https://lastodyssey.io' },
+  kaidro:    { name:'Kaidro: Clan Battles',   wing:'STRATEGY HALL',genre:'Action / Battle',   chain:'Ronin', players:'4,600',  cost:'Free',   hex:'#e74c3c', desc:"Cyberpunk mech battle game. Choose your clan, pilot your Kaidro NFT, and fight for dominance in intense real-time arena combat on Ronin.",         url:'https://marketplace.skymavis.com/games/kaidro' },
+  machines:  { name:'The Machines Arena',     wing:'STRATEGY HALL',genre:'MOBA / Shooter',    chain:'Ronin', players:'7,300',  cost:'Free',   hex:'#3498db', desc:"Top-down tactical MOBA shooter. Command robots, capture objectives, and battle in team-based arenas. Fast-paced Web3 competitive gaming on Ronin.", url:'https://marketplace.skymavis.com/games/the-machines-arena' },
 
   // ── Axie Hall flagships ───────────────────────────────────────
-  atia:      { name:"Atia's Legacy",          wing:'AXIE HALL',    genre:'Action RPG',        chain:'Ronin',       players:'5,600',  cost:'Free',   hex:'#a855f7', desc:"Sky Mavis newest chapter in the Axie universe. A mobile-first action RPG set in the world of Lunacia — recruit Axies, master combat, and uncover the secrets of Atia.", url:'https://axieinfinity.com/', assets: { poster_left: ['/stores/legacy/key_art_1.jpg', '/stores/legacy/key_art_3.jpg'], poster_right: ['/stores/legacy/key_art_2.jpg', '/stores/legacy/key_art_4.jpg'], logo: '/stores/legacy/logo.jpg', banner: '/stores/legacy/banner.jpg' } },
+  atia:      { name:"Atia's Legacy",          wing:'AXIE FRANCHISE',    genre:'Action RPG',        chain:'Ronin',       players:'5,600',  cost:'Free',   hex:'#a855f7', desc:"Sky Mavis newest chapter in the Axie universe. A mobile-first action RPG set in the world of Lunacia — recruit Axies, master combat, and uncover the secrets of Atia.", url:'https://axieinfinity.com/', assets: { poster_left: ['/stores/legacy/key_art_1.jpg', '/stores/legacy/key_art_3.jpg'], poster_right: ['/stores/legacy/key_art_2.jpg', '/stores/legacy/key_art_4.jpg'], logo: '/stores/legacy/logo.jpg', banner: '/stores/legacy/banner.jpg' } },
 
   // ── Axie Game-Verse Wing — Racing & Arcade ───────────────────
-  infinitysoccer: { name:'Infinity Soccer', wing:'AXIE ARCADE', genre:'Sports / Competitive', chain:'Ronin', players:'2,100', cost:'Free', hex:'#00e5ff',
+  infinitysoccer: { name:'Infinity Soccer', wing:'SPORTS HALL', genre:'Sports / Competitive', chain:'Ronin', players:'2,100', cost:'Free', hex:'#00e5ff',
     desc:"1v1 competitive soccer where each match lasts 90 seconds. Axie card attributes map directly to your team body parts, making every Axie a unique player on the pitch.",
     url:'https://hub.skymavis.com/games/infinity-soccer' },
 
-  tinydrift: { name:'Tiny Drift', wing:'AXIE ARCADE', genre:'Racing / Casual', chain:'Ronin', players:'3,800', cost:'Free', hex:'#ff8c00',
+  tinydrift: { name:'Tiny Drift', wing:'SPORTS HALL', genre:'Racing / Casual', chain:'Ronin', players:'3,800', cost:'Free', hex:'#ff8c00',
     desc:"Put your Axies behind the wheel and zip around kart tracks. Earn up to 1,000 AXP per Axie per day in PvE Adventure Mode — the fastest way to level up your squad.",
     url:'https://hub.skymavis.com/games/tiny-drift' },
 
-  lunaciacup: { name:'Lunacia Cup', wing:'AXIE ARCADE', genre:'Racing Simulator', chain:'Ronin', players:'1,400', cost:'Free', hex:'#ffd700',
+  lunaciacup: { name:'Lunacia Cup', wing:'SPORTS HALL', genre:'Racing Simulator', chain:'Ronin', players:'1,400', cost:'Free', hex:'#ffd700',
     desc:"One of the first community-built Greenlight titles. A racing simulator set across the landscapes of Lunacia where your Axies compete for glory on the circuit.",
     url:'https://hub.skymavis.com/greenlight' },
 
-  axieball: { name:'Axie Ball', wing:'AXIE ARCADE', genre:'Sports / Arcade', chain:'Ronin', players:'900', cost:'Free', hex:'#64d860',
+  axieball: { name:'Axie Ball', wing:'SPORTS HALL', genre:'Sports / Arcade', chain:'Ronin', players:'900', cost:'Free', hex:'#64d860',
     desc:"Physics-based sports arcade title born from the Axie Game Jam. Fast, frantic, and accessible — get your Axies into the arena and score before time runs out.",
     url:'https://hub.skymavis.com/greenlight' },
 
   // ── Axie Game-Verse Wing — Puzzle & Idle ─────────────────────
-  axiequest: { name:'Axie Quest', wing:'AXIE PUZZLE', genre:'Match-3 RPG', chain:'Ronin', players:'4,200', cost:'Free', hex:'#c77dff',
+  axiequest: { name:'Axie Quest', wing:'PUZZLE HALL', genre:'Match-3 RPG', chain:'Ronin', players:'4,200', cost:'Free', hex:'#c77dff',
     desc:"Match-3 puzzle adventure with an RPG twist. Swap tiles to cast spells and defeat monsters, with micro-progression powered by Rainbow Gem Packages from the Mavis Store.",
     url:'https://hub.skymavis.com/greenlight' },
 
-  puzzlechamps: { name:'Puzzle Champions', wing:'AXIE PUZZLE', genre:'Tile-Matching Battle', chain:'Ronin', players:'1,600', cost:'Free', hex:'#00cba9',
+  puzzlechamps: { name:'Puzzle Champions', wing:'PUZZLE HALL', genre:'Tile-Matching Battle', chain:'Ronin', players:'1,600', cost:'Free', hex:'#00cba9',
     desc:"Tile-matching puzzle battle game where Axie traits influence your abilities. Outmatch opponents across an ever-expanding grid of strategic combos.",
     url:'https://hub.skymavis.com/greenlight' },
 
-  culinarywars: { name:'Culinary Wars', wing:'AXIE PUZZLE', genre:'Cooking / Time Management', chain:'Ronin', players:'800', cost:'Free', hex:'#ffb347',
+  culinarywars: { name:'Culinary Wars', wing:'PUZZLE HALL', genre:'Cooking / Time Management', chain:'Ronin', players:'800', cost:'Free', hex:'#ffb347',
     desc:"One of the inaugural Mavis Hub Greenlight titles. Manage your Axie-run kitchen under pressure — cook, plate, and serve before the rush overwhelms your crew.",
     url:'https://hub.skymavis.com/greenlight' },
 
-  triforce: { name:'Tri-Force', wing:'AXIE PUZZLE', genre:'Strategy Puzzle', chain:'Ronin', players:'700', cost:'Free', hex:'#4fc3f7',
+  triforce: { name:'Tri-Force', wing:'PUZZLE HALL', genre:'Strategy Puzzle', chain:'Ronin', players:'700', cost:'Free', hex:'#4fc3f7',
     desc:"Strategy-puzzle title launched alongside Culinary Wars during the Greenlight debut wave. Position your Axies on triangular grids and outmanoeuvre your opponent.",
     url:'https://hub.skymavis.com/greenlight' },
 
-  denofmyst: { name:'Den of Mysteries', wing:'AXIE PUZZLE', genre:'Adventure / Exploration', chain:'Ronin', players:'1,100', cost:'Free', hex:'#ab47bc',
+  denofmyst: { name:'Den of Mysteries', wing:'PUZZLE HALL', genre:'Adventure / Exploration', chain:'Ronin', players:'1,100', cost:'Free', hex:'#ab47bc',
     desc:"Story-driven map exploration using environment and tile puzzles. Descend into Lunacia hidden depths, uncover ancient secrets, and guide your Axie through peril.",
     url:'https://hub.skymavis.com/greenlight' },
 
   // ── Axie Game-Verse Wing — Action & Strategy ─────────────────
-  skysmash: { name:'Axie Sky Smash', wing:'AXIE ACTION', genre:'Artillery / Turn-Based', chain:'Ronin', players:'2,900', cost:'Free', hex:'#ff4444',
+  skysmash: { name:'Axie Sky Smash', wing:'ACTION HALL', genre:'Artillery / Turn-Based', chain:'Ronin', players:'2,900', cost:'Free', hex:'#ff4444',
     desc:"Turn-based 2D tactical artillery shooter inspired by Gunbound and Worms. Axie body parts map to powerful weapons. Fully destructible maps — no two battles play the same.",
     url:'https://hub.skymavis.com/greenlight' },
 
-  axiewar: { name:'Axie Infinity War', wing:'AXIE ACTION', genre:'Multiplayer Shooter', chain:'Ronin', players:'2,300', cost:'Free', hex:'#ff1744',
+  axiewar: { name:'Axie Infinity War', wing:'ACTION HALL', genre:'Multiplayer Shooter', chain:'Ronin', players:'2,300', cost:'Free', hex:'#ff1744',
     desc:"Real-time multiplayer arena shooter — pit your Axies against each other in intense combat zones. NFT traits become weapon loadouts in this action-packed Greenlight title.",
     url:'https://hub.skymavis.com/games/aiw' },
 
-  trifields: { name:'Tri-Fields / Axie Fields', wing:'AXIE ACTION', genre:'Tactical Grid', chain:'Ronin', players:'1,200', cost:'Free', hex:'#4caf50',
+  trifields: { name:'Tri-Fields / Axie Fields', wing:'FIGHTER WING', genre:'Tactical Grid', chain:'Ronin', players:'1,200', cost:'Free', hex:'#4caf50',
     desc:"Tactical grid-based deployment game. Place your Axies on the battlefield, exploit terrain advantages, and execute strategies that turn body-part traits into decisive weapons.",
     url:'https://hub.skymavis.com/greenlight' },
 
-  acrosslunacia: { name:'Across Lunacia', wing:'AXIE ACTION', genre:'Platformer / Adventure', chain:'Ronin', players:'1,800', cost:'Free', hex:'#29b6d2',
+  acrosslunacia: { name:'Across Lunacia', wing:'FIGHTER WING', genre:'Platformer / Adventure', chain:'Ronin', players:'1,800', cost:'Free', hex:'#29b6d2',
     desc:"Side-scrolling adventure platformer — explore Lunacia using your own NFT Axies. Run, jump, and battle through hand-crafted levels while Axie traits shape how you play.",
     url:'https://hub.skymavis.com/greenlight' },
 
-  tacticards: { name:'Tacticards', wing:'AXIE ACTION', genre:'Card Game / Deck-Building', chain:'Ronin', players:'1,500', cost:'Free', hex:'#f7c75a',
+  tacticards: { name:'Tacticards', wing:'ACTION HALL', genre:'Card Game / Deck-Building', chain:'Ronin', players:'1,500', cost:'Free', hex:'#f7c75a',
     desc:"Digital tabletop card game built on custom Axie deck-building mechanics. Draft your hand, deploy your Axies, and outthink opponents in deep strategic card battles.",
     url:'https://hub.skymavis.com/greenlight' },
 
   // ── Discovery Wing — Forged on Ronin (metadata: ronin-storefront-metadata.md) ──
-  ragnarokgenesis: { name:'Ragnarok Landverse: Genesis', wing:'DISCOVERY WING', genre:'MMORPG', chain:'Ronin', players:'—', cost:'Free', hex:'#358FBD',  // display variant of brand #0C3C54 (too dark for marquee)
+  ragnarokgenesis: { name:'Ragnarok Landverse: Genesis', wing:'ADVENTURE HALL', genre:'MMORPG', chain:'Ronin', players:'—', cost:'Free', hex:'#358FBD',  // display variant of brand #0C3C54 (too dark for marquee)
     desc:"Return to Rune Midgard in the free-to-play Web3 revival of Ragnarok Online. Quest, grind, and battle MVPs while mining on-chain resources and trading NFT gear and land on Ronin.",
     url:'https://rolg.maxion.gg' },
-  ragnarokamerica: { name:'Ragnarok Landverse America', wing:'DISCOVERY WING', genre:'MMORPG', chain:'Ronin', players:'120,000+', cost:'Free', hex:'#326ED2',
+  ragnarokamerica: { name:'Ragnarok Landverse America', wing:'ADVENTURE HALL', genre:'MMORPG', chain:'Ronin', players:'120,000+', cost:'Free', hex:'#326ED2',
     desc:"Classic Ragnarok Online rebuilt for North and Latin America. Level up, party for MVP hunts, and earn ION tokens, with items and land minted as tradable NFTs on Ronin.",
     url:'https://rola.maxion.gg' },
-  aquariumquest: { name:'Aquarium Quest', wing:'DISCOVERY WING', genre:'Cozy Pet Sim', chain:'Ronin', players:'—', cost:'Free', hex:'#0CB4FC',
+  aquariumquest: { name:'Aquarium Quest', wing:'RPG HALL', genre:'Cozy Pet Sim', chain:'Ronin', players:'—', cost:'Free', hex:'#0CB4FC',
     desc:"Collect, breed, and raise aquatic pets in a cozy pixel-art aquarium. Decorate tanks, compete in arcade minigames, and earn RON rewards, with Founders Passes tradable on Ronin.",
     url:'https://play.aquarium.quest' },
-  thebeacon: { name:'The Beacon', wing:'DISCOVERY WING', genre:'Action Roguelite', chain:'Ronin', players:'—', cost:'Free', hex:'#5A96D2',
+  thebeacon: { name:'The Beacon', wing:'ADVENTURE HALL', genre:'Action Roguelite', chain:'Ronin', players:'—', cost:'Free', hex:'#5A96D2',
     desc:"Fight through procedurally generated dungeons in this fantasy action roguelite RPG. Clear runs solo or co-op, collect cosmetic and housing NFTs, and earn on-chain rewards via Ronin playtests.",
     url:'https://thebeacon.gg' },
 
   // ── Community Wing — Forged on Ronin ──────────────────────────
-  partyicons: { name:'PARTY ICONS', wing:'COMMUNITY WING', genre:'Party Battle Royale', chain:'Ronin', players:'—', cost:'Free', hex:'#FC3CCC',
+  partyicons: { name:'PARTY ICONS', wing:'RPG HALL', genre:'Party Battle Royale', chain:'Ronin', players:'—', cost:'Free', hex:'#FC3CCC',
     desc:"Jump into a multiplayer party royale spanning Party Heist and 25+ Carnival Clash minigames. Compete, climb, and let OGX Hero NFT holders shape events in real time on Ronin.",
     url:'https://www.partyicons.com' },
-  calamity: { name:'Calamity', wing:'COMMUNITY WING', genre:'2D Action MMORPG', chain:'Ronin', players:'—', cost:'Free', hex:'#FAD25A',
+  calamity: { name:'Calamity', wing:'RPG HALL', genre:'2D Action MMORPG', chain:'Ronin', players:'—', cost:'Free', hex:'#FAD25A',
     desc:"Carve your path through a hardcore 2D MMORPG of dungeons, bosses, and survival trials. Master three classes and 40+ skills, with Dragon Ring NFTs and player trading secured on Ronin.",
     url:'https://app.calamity.online' },
-  fableborne: { name:'Fableborne', wing:'COMMUNITY WING', genre:'ARPG × Strategy', chain:'Ronin', players:'—', cost:'Free', hex:'#FAE646',
+  fableborne: { name:'Fableborne', wing:'RPG HALL', genre:'ARPG × Strategy', chain:'Ronin', players:'—', cost:'Free', hex:'#FAE646',
     desc:"Raid enemy kingdoms in quick ARPG battles, then fortify your own. Diablo-meets-Clash strategy with collectible heroes, Kingdoms NFTs, and Essence earnings living on Ronin.",
     url:'https://fableborne.com' },
 
   // ── West Passage — Forged on Ronin ────────────────────────────
-  fishingfrenzy: { name:'Fishing Frenzy', wing:'WEST PASSAGE', genre:'Cozy Fishing RPG', chain:'Ronin', players:'25,000', cost:'Free', hex:'#18C8D8',
+  fishingfrenzy: { name:'Fishing Frenzy', wing:'RPG HALL', genre:'Cozy Fishing RPG', chain:'Ronin', players:'25,000', cost:'Free', hex:'#18C8D8',
     desc:"Cast, hook, and reel in a cozy onchain fishing RPG. Cook your catch, upgrade gear, and complete quests in a player-driven economy powered by Ronin and the $FISH token.",
     url:'https://fishingfrenzy.co' },
-  craftworld: { name:'Craft World', wing:'WEST PASSAGE', genre:'Co-op Crafting Sim', chain:'Ronin', players:'—', cost:'Free', hex:'#FC3C54',
+  craftworld: { name:'Craft World', wing:'SIMULATION HALL', genre:'Co-op Crafting Sim', chain:'Ronin', players:'—', cost:'Free', hex:'#FC3C54',
     desc:"Team up with dynomites in a massive co-op crafting sim by VOYA Games. Gather, craft, and build artefacts in a post-apocalyptic world where every action feeds a player-owned onchain economy.",
     url:'https://www.angrydynomiteslab.com/craft-world' },
-  chickensaga: { name:'Chicken Saga', wing:'WEST PASSAGE', genre:'Breed & Battle', chain:'Ronin', players:'—', cost:'Free', hex:'#FAE66E',
+  chickensaga: { name:'Chicken Saga', wing:'TUTORIAL LOBBY', genre:'Breed & Battle', chain:'Ronin', players:'—', cost:'Free', hex:'#FAE66E',
     desc:"Collect, breed, battle, and trade NFT chickens with unique traits. Rub Genesis chickens for Feathers, craft items, and spend $COCK tokens in a player-driven economy on Ronin.",
     url:'https://app.sabongsaga.com' },
-  grandarena: { name:'Grand Arena', wing:'WEST PASSAGE', genre:'AI Fantasy Autobattler', chain:'Ronin', players:'—', cost:'Free', hex:'#246CE4',
+  grandarena: { name:'Grand Arena', wing:'TUTORIAL LOBBY', genre:'AI Fantasy Autobattler', chain:'Ronin', players:'—', cost:'Free', hex:'#246CE4',
     desc:"Draft Moki card NFTs and let AI-powered squads battle in daily fantasy-sports contests. Manage your roster, climb leaderboards, and chase seasonal prize pools on Ronin.",
     url:'https://fantasy.grandarena.gg' },
 }
@@ -197,8 +197,8 @@ export const CELL_STORE = {
 export const MAP_W = 512
 export const MAP_H = 512
 
-export const CX1 = 19   // main corridor west x
-export const CX2 = 24   // main corridor east x
+export const CX1 = 8    // sports hall west x
+export const CX2 = 12   // sports hall east x
 
 // ── Build the map grid ────────────────────────────────────────
 export const MAP = Array.from({ length: MAP_H }, () => new Array(MAP_W).fill(1))
@@ -213,144 +213,143 @@ function place(x, y, id) {
   if (y >= 0 && y < MAP_H && x >= 0 && x < MAP_W) MAP[y][x] = id
 }
 
-// ── Original wings ────────────────────────────────────────────
-carve(14, 72, 29, 78)        // LOBBY
-carve(30, 74, 35, 76)        // SOUTH CONNECTING HALL    x:30-35, y:74-76
-carve(36, 72, 51, 78)        // EAST SOUTH LOBBY         x:36-51, y:72-78
-carve(CX1, 58, CX2, 71)     // MAIN HALL corridor
-carve(11, 45, 32, 57)        // FOOD COURT
-carve(1,  48, 10,  52)       // RPG WING
-carve(33, 48, 42,  52)       // STRATEGY WING
+// ── Left wing — Sports Hall, Action Hall, Fighter Wing ────────
+carve( 2,  2, 20,  8)   // RACING — wide room at top of sports hall
+carve( 8,  2, 12, 28)   // SPORTS HALL — vertical corridor
+carve( 8, 26, 34, 32)   // FOOD COURT — horizontal connector
+carve( 2, 26, 14, 38)   // ACTION HALL — left side
+carve( 2, 40, 20, 52)   // FIGHTER WING — platformer / fighting
+carve( 6, 38, 12, 42)   // action ↔ fighter connector
 
-// ── Axie Hall — connector north from Food Court ───────────────
-carve(CX1, 25, CX2, 44)     // AXIE HALL corridor  x:19-24, y:25-44
+// ── Center — Puzzle Hall ──────────────────────────────────────
+carve(22,  8, 36, 32)   // PUZZLE HALL
 
-// ── Axie Lobby — wide hub at top of hall ─────────────────────
-carve(11, 20, 32, 24)        // AXIE LOBBY          x:11-32, y:20-24
+// ── Upper right — Strategy Hall + Axie Franchise ─────────────
+carve(34, 12, 40, 22)   // puzzle ↔ strategy connector
+carve(38,  6, 52, 22)   // STRATEGY HALL
+carve(50,  2, 66, 22)   // AXIE FRANCHISE
 
-// ── Three sub-wings branching from Axie Lobby ────────────────
-carve(1,  8, 10,  24)        // ARCADE WING (west)   x:1-10,  y:8-24
-carve(33, 8, 44,  24)        // PUZZLE WING (east)   x:33-44, y:8-24
-carve(11, 3, 32,  17)        // ACTION WING (north)  x:11-32, y:3-17
+// ── Center right — Simulation Hall + Lobby ───────────────────
+carve(42, 22, 58, 30)   // SIMULATION HALL
+carve(36, 26, 42, 34)   // puzzle ↔ lobby connector
+carve(40, 28, 54, 40)   // LOBBY
 
-// ── Action Wing doorway through its south wall into lobby ─────
-carve(CX1, 18, CX2, 19)     // doorway x:19-24, y:18-19
+// ── Lower right — Adventure Hall, RPG Hall, Tutorial Lobby ───
+carve(40, 40, 58, 54)   // ADVENTURE HALL
+carve(26, 32, 30, 42)   // puzzle ↔ RPG connector
+carve(20, 42, 36, 54)   // RPG HALL
+carve(56, 48, 62, 56)   // adventure ↔ tutorial bridge
+carve(62, 22, 76, 56)   // TUTORIAL LOBBY
 
-// ── North stub — future expansion point ──────────────────────
-carve(CX1, 1, CX2,  2)      // stub x:19-24, y:1-2
+// ── RACING / SPORTS HALL stores — north wall y=1 ─────────────
+;[2,3,4,5].forEach(x     => place(x,  1, CELL.IS))   // Infinity Soccer
+;[6,7,8,9].forEach(x     => place(x,  1, CELL.AB))   // Axie Ball
+;[10,11,12,13].forEach(x => place(x,  1, CELL.TD))   // Tiny Drift
+;[14,15,16,17].forEach(x => place(x,  1, CELL.LC))   // Lunacia Cup
 
-// ── East Lobby — attached to east end of Strategy Wing ────────
-// Strategy Wing (x:33-42, y:48-52) opens into this lobby at x=42/43, y:48-52
-carve(43, 44, 64, 56)        // EAST LOBBY             x:43-64, y:44-56 (22w)
+// ── ACTION HALL stores — west wall x=1 ───────────────────────
+;[26,27,28,29].forEach(y => place(1, y, CELL.SS))    // Sky Smash
+;[30,31,32,33].forEach(y => place(1, y, CELL.AI))    // Axie Infinity War
+;[34,35,36,37].forEach(y => place(1, y, CELL.TA))    // Tacticards
 
-// ── Forged on Ronin wings (2026-06-09 lineup) ─────────────────
-carve(1, 54, 10, 66)         // DISCOVERY WING   — connects to Food Court (floor x=11, y:54-57)
-carve(43, 57, 49, 66)        // COMMUNITY WING   — southern extension of East Lobby (floor y=56)
-carve(5, 72, 13, 78)         // WEST PASSAGE     — connects to Lobby (floor x=14)
+// ── FIGHTER WING stores — west wall x=1 ──────────────────────
+;[41,42,43,44].forEach(y => place(1, y, CELL.TR))    // Tri-Fields
+;[45,46,47,48].forEach(y => place(1, y, CELL.AL))    // Across Lunacia
 
-// ── Original store placements ─────────────────────────────────
-;[58,59,60,61].forEach(y => { place(18, y, 16); place(25, y, 17) })   // Main Hall
-;[3,4,5,6].forEach(x    => { place(x, 47, 12); place(x, 53, 13) })    // RPG Wing
-;[35,36,37,38].forEach(x => { place(x, 47, 14); place(x, 53, 15) })   // Strategy Wing
+// ── PUZZLE HALL stores — north wall y=7, west wall x=21 ──────
+;[22,23,24,25].forEach(x => place(x,  7, CELL.AQ))  // Axie Quest
+;[26,27,28,29].forEach(x => place(x,  7, CELL.PC))  // Puzzle Champions
+;[30,31,32,33].forEach(x => place(x,  7, CELL.CW))  // Culinary Wars
+;[8,9,10,11].forEach(y   => place(21, y, CELL.TF))  // Tri-Force
+;[12,13,14,15].forEach(y => place(21, y, CELL.DM))  // Den of Mysteries
 
-// Gods Unchained — south wall of Food Court
-;[11,12,13,14].forEach(x => place(x, 58, 11))
+// ── STRATEGY HALL stores — north wall y=5 ────────────────────
+;[38,39,40,41].forEach(x => place(x, 5, CELL.KD))   // Kaidro
+;[42,43,44,45].forEach(x => place(x, 5, CELL.MA))   // Machines Arena
+;[46,47,48,49].forEach(x => place(x, 5, CELL.WF))   // Wild Forest
 
-// ── Axie Hall flagship stores ─────────────────────────────────
-;[30,31,32,33].forEach(y => place(18, y, 10))   // Origins   — west wall
-;[30,31,32,33].forEach(y => place(25, y, 32))   // Atia's Legacy — east wall
+// ── AXIE FRANCHISE stores — north wall y=1 ───────────────────
+;[51,52,53,54].forEach(x => place(x, 1, CELL.AX))   // Axie Origins
+;[55,56,57,58].forEach(x => place(x, 1, CELL.TL))   // Atia's Legacy
 
-// ── Axie Game-Verse Wing — 8 walls, all size:4 ───────────────
-// W1  Arcade West  (x=0, dir:v)
-;[8,9,10,11].forEach(y    => place(0, y, 18))   // Infinity Soccer
-;[12,13,14,15].forEach(y  => place(0, y, 19))   // Tiny Drift
+// ── SIMULATION HALL stores — east wall x=59, south wall y=31 ─
+;[23,24,25,26].forEach(y => place(59, y, CELL.PX))  // Pixels
+;[27,28,29,30].forEach(y => place(59, y, CELL.LT))  // Lumiterra
+;[55,56,57,58].forEach(x => place(x, 31, CELL.CRW)) // Craft World
 
-// W2  Arcade North  (y=7, dir:h)  — end caps: x=0 and x=9-10 stay wall
-;[1,2,3,4].forEach(x  => place(x, 7, 20))   // Lunacia Cup
-;[5,6,7,8].forEach(x  => place(x, 7, 21))   // Axie Ball
+// ── ADVENTURE HALL stores — west wall x=39, east wall x=59 ───
+;[40,41,42,43].forEach(y => place(39, y, CELL.AP))  // Apeiron
+;[44,45,46,47].forEach(y => place(39, y, CELL.LO))  // Last Odyssey
+;[48,49,50,51].forEach(y => place(39, y, CELL.RG))  // Ragnarok Genesis
+;[40,41,42,43].forEach(y => place(59, y, CELL.RA))  // Ragnarok America
+;[44,45,46,47].forEach(y => place(59, y, CELL.BC))  // The Beacon
 
-// W3  Puzzle East  (x=45, dir:v)
-;[8,9,10,11].forEach(y    => place(45, y, 22))   // Axie Quest
-;[12,13,14,15].forEach(y  => place(45, y, 23))   // Puzzle Champions
-;[16,17,18,19].forEach(y  => place(45, y, 24))   // Culinary Wars
+// ── RPG HALL stores — north wall y=41, west wall x=19, south y=55
+;[21,22,23,24].forEach(x => place(x, 41, CELL.AQ2)) // Aquarium Quest
+;[31,32,33,34].forEach(x => place(x, 41, CELL.CL))  // Calamity
+;[43,44,45,46].forEach(y => place(19, y, CELL.FF))  // Fishing Frenzy
+;[47,48,49,50].forEach(y => place(19, y, CELL.PI))  // Party Icons
+;[21,22,23,24].forEach(x => place(x, 55, CELL.FB))  // Fableborne
 
-// W4  Puzzle North  (y=7, dir:h)  — end cap: x=33 corner stays wall
-;[34,35,36,37].forEach(x  => place(x, 7, 25))   // Tri-Force
-;[38,39,40,41].forEach(x  => place(x, 7, 26))   // Den of Mysteries
-
-// W5  Action South-Left  (y=18, x:11-18)
-;[11,12,13,14].forEach(x  => place(x, 18, 27))   // Axie Sky Smash
-;[15,16,17,18].forEach(x  => place(x, 18, 28))   // Axie Infinity War
-
-// W6  Action South-Right  (y=18, x:25-28) — x=29-32 stays plain
-;[25,26,27,28].forEach(x  => place(x, 18, 29))   // Tri-Fields
-
-// W7  Action West  (x=10, y:3-6)  — y=2 north corner and y=7 stay wall
-;[3,4,5,6].forEach(y  => place(10, y, 31))   // Tacticards
-
-// W8  Action East  (x=33, y:3-6)  — y=2 north corner and y=7 stay wall
-;[3,4,5,6].forEach(y  => place(33, y, 30))   // Across Lunacia
-
-// ── Tutorial Wing — East South Lobby (x:36-51, y:72-78) ──────
-// North wall (y=71): 2-gap + 4-store + 4-gap + 4-store + 2-gap
-;[38,39,40,41].forEach(x => place(x, 71, CELL.TU1))  // The Outlet overview
-;[46,47,48,49].forEach(x => place(x, 71, CELL.TU2))  // Trading
-// South wall (y=79) — mirror of north wall
-;[38,39,40,41].forEach(x => place(x, 79, CELL.TU3))  // DM Chat
-;[46,47,48,49].forEach(x => place(x, 79, CELL.TU4))  // Group Chat
-// East wall (x=52): centered on lobby midpoint y=75
-;[73,74,75,76].forEach(y => place(52, y, CELL.TU5))  // Guild Halls & Collabs
-
-// ── Forged on Ronin storefronts ───────────────────────────────
-// Discovery Wing — west wall x=0 (dir 'v'), south wall y=67 (dir 'h')
-;[55,56,57,58].forEach(y => place(0, y, CELL.RG))    // Ragnarok Landverse: Genesis
-;[59,60,61,62].forEach(y => place(0, y, CELL.RA))    // Ragnarok Landverse America
-;[2,3,4,5].forEach(x  => place(x, 67, CELL.AQ2))     // Aquarium Quest
-;[6,7,8,9].forEach(x  => place(x, 67, CELL.BC))      // The Beacon
-// Community Wing — west wall x=42 (dir 'v'), east wall x=50 (dir 'v')
-;[58,59,60,61].forEach(y => place(42, y, CELL.PI))   // PARTY ICONS
-;[62,63,64,65].forEach(y => place(42, y, CELL.CL))   // Calamity
-;[58,59,60,61].forEach(y => place(50, y, CELL.FB))   // Fableborne
-// West Passage — north wall y=71 (dir 'h'), south wall y=79 (dir 'h')
-;[5,6,7,8].forEach(x   => place(x, 71, CELL.FF))     // Fishing Frenzy
-;[9,10,11,12].forEach(x=> place(x, 71, CELL.CRW))    // Craft World
-;[5,6,7,8].forEach(x   => place(x, 79, CELL.CS))     // Chicken Saga
-;[9,10,11,12].forEach(x=> place(x, 79, CELL.GA))     // Grand Arena
+// ── TUTORIAL LOBBY stores — west wall x=61, south wall y=57 ──
+;[23,24,25,26].forEach(y => place(61, y, CELL.TU1)) // The Outlet overview
+;[27,28,29,30].forEach(y => place(61, y, CELL.TU2)) // Trading
+;[31,32,33,34].forEach(y => place(61, y, CELL.TU3)) // DM Chat
+;[35,36,37,38].forEach(y => place(61, y, CELL.TU4)) // Group Chat
+;[39,40,41,42].forEach(y => place(61, y, CELL.TU5)) // Guild Halls
+;[63,64,65,66].forEach(x => place(x, 57, CELL.CS))  // Chicken Saga
+;[67,68,69,70].forEach(x => place(x, 57, CELL.GA))  // Grand Arena
 
 // ── Zone lookup ───────────────────────────────────────────────
 export function getZone(x, y) {
-  if (y < 8 && x >= CX1 && x <= CX2 && y <= 2)
-    return { id: 'FUTURE', label: '🚧  COMING SOON' }
-  if (y <= 17 && x >= 11 && x <= 32)
-    return { id: 'AXIE ACTION', label: '⚔  ACTION & STRATEGY  · Axie Greenlight' }
-  if (y <= 19 && x >= CX1 && x <= CX2)
-    return { id: 'AXIE HALL', label: '🎮  AXIE INFINITY WING' }
-  if (y <= 24 && x <= 10)
-    return { id: 'AXIE ARCADE', label: '🏎  RACING & ARCADE  · Axie Greenlight' }
-  if (y <= 24 && x >= 33)
-    return { id: 'AXIE PUZZLE', label: '🧩  PUZZLE & IDLE  · Axie Greenlight' }
-  if (y >= 20 && y <= 24)
-    return { id: 'AXIE LOBBY', label: '🎮  AXIE INFINITY  · Lobby' }
-  if (x >= CX1 && x <= CX2 && y >= 25 && y <= 44)
-    return { id: 'AXIE HALL', label: '🎮  AXIE INFINITY WING' }
-  // Specific wings BEFORE the FOOD COURT band — the y:45-57 catch-all was
-  // shadowing RPG/STRATEGY (dead branches until 2026-06-09 fix).
-  if (y >= 48 && y <= 52 && x <= 10)                           return { id: 'RPG WING',      label: '⚔  RPG WING  · Adventure' }
-  if (y >= 48 && y <= 52 && x >= 33 && x <= 42)                return { id: 'STRATEGY WING', label: '🏗  STRATEGY WING  · Build' }
-  if (x <= 10 && y > 53 && y < 68)
-    return { id: 'DISCOVERY WING', label: '🧭  DISCOVERY WING  · New Worlds' }
-  if (x >= 42 && x <= 50 && y > 56 && y < 67)
-    return { id: 'COMMUNITY WING', label: '🎉  COMMUNITY WING  · Party & Co-op' }
-  // EAST LOBBY before the FOOD COURT band — same shadow bug as RPG/STRATEGY
-  // (previously only fired on its single y=44 row).
-  if (x >= 43 && x <= 64 && y >= 44 && y <= 56)               return { id: 'EAST LOBBY',    label: '🌐  EAST LOBBY' }
-  if (y >= 45 && y <= 57)                                      return { id: 'FOOD COURT',    label: 'FOOD COURT' }
-  if (y > 71 && y < 79 && x >= 36 && x <= 51)
-    return { id: 'TUTORIAL WING', label: '📖  TUTORIAL WING  · Learn the basics' }
-  if (y > 71 && y < 80 && x >= 4 && x <= 13)
-    return { id: 'WEST PASSAGE', label: '🎣  WEST PASSAGE  · Arcade Row' }
-  if (y > 71)                                                   return { id: 'LOBBY',         label: 'LOBBY' }
-  if (y >= 58 && x >= CX1-1 && x <= CX2+1)                    return { id: 'MAIN HALL',     label: 'MAIN HALL' }
+  // TUTORIAL LOBBY — far right
+  if (x >= 62 && x <= 76 && y >= 22 && y <= 56)
+    return { id: 'TUTORIAL LOBBY', label: '📖  TUTORIAL LOBBY  · Learn the basics' }
+  if (x >= 56 && x <= 62 && y >= 48 && y <= 56)
+    return { id: 'TUTORIAL LOBBY', label: '📖  TUTORIAL LOBBY  · Learn the basics' }
+  // AXIE FRANCHISE — top right
+  if (x >= 50 && x <= 66 && y >= 2 && y <= 22)
+    return { id: 'AXIE FRANCHISE', label: '🎮  AXIE FRANCHISE  · Axie Infinity World' }
+  // STRATEGY HALL — upper right (check both room and connector)
+  if (x >= 38 && x <= 52 && y >= 6 && y <= 22)
+    return { id: 'STRATEGY HALL', label: '🏗  STRATEGY HALL  · Build & Conquer' }
+  if (x >= 34 && x <= 40 && y >= 12 && y <= 22)
+    return { id: 'STRATEGY HALL', label: '🏗  STRATEGY HALL  · Build & Conquer' }
+  // SIMULATION HALL
+  if (x >= 42 && x <= 58 && y >= 22 && y <= 30)
+    return { id: 'SIMULATION HALL', label: '🌍  SIMULATION HALL  · Worlds to Manage' }
+  // LOBBY — includes puzzle→lobby connector
+  if (x >= 36 && x <= 42 && y >= 26 && y <= 34)
+    return { id: 'LOBBY', label: 'LOBBY' }
+  if (x >= 40 && x <= 54 && y >= 28 && y <= 40)
+    return { id: 'LOBBY', label: 'LOBBY' }
+  // ADVENTURE HALL
+  if (x >= 40 && x <= 58 && y >= 40 && y <= 54)
+    return { id: 'ADVENTURE HALL', label: '⚔  ADVENTURE HALL  · Quest & Explore' }
+  // RPG HALL — includes puzzle→RPG connector
+  if (x >= 26 && x <= 30 && y >= 32 && y <= 42)
+    return { id: 'RPG HALL', label: '🎲  RPG HALL  · Role Playing Games' }
+  if (x >= 20 && x <= 36 && y >= 42 && y <= 54)
+    return { id: 'RPG HALL', label: '🎲  RPG HALL  · Role Playing Games' }
+  // PUZZLE HALL — before food court to claim the central overlap area
+  if (x >= 22 && x <= 36 && y >= 8 && y <= 32)
+    return { id: 'PUZZLE HALL', label: '🧩  PUZZLE HALL  · Match & Solve' }
+  // SPORTS HALL — racing room at top, then corridor south
+  if (x >= 2 && x <= 20 && y >= 2 && y <= 8)
+    return { id: 'SPORTS HALL', label: '🏎  SPORTS HALL  · Race & Compete' }
+  if (x >= 8 && x <= 12 && y >= 2 && y <= 28)
+    return { id: 'SPORTS HALL', label: '🏎  SPORTS HALL  · Race & Compete' }
+  // FOOD COURT — horizontal connector
+  if (x >= 8 && x <= 34 && y >= 26 && y <= 32)
+    return { id: 'FOOD COURT', label: '🍔  FOOD COURT  · Central Crossing' }
+  // ACTION HALL — left side
+  if (x >= 2 && x <= 14 && y >= 26 && y <= 38)
+    return { id: 'ACTION HALL', label: '💥  ACTION HALL  · Fight & Shoot' }
+  // FIGHTER WING — platformer / fighting
+  if (x >= 6 && x <= 12 && y >= 38 && y <= 42)
+    return { id: 'FIGHTER WING', label: '🥊  FIGHTER WING  · Platform & Battle' }
+  if (x >= 2 && x <= 20 && y >= 40 && y <= 52)
+    return { id: 'FIGHTER WING', label: '🥊  FIGHTER WING  · Platform & Battle' }
   return { id: 'THE OUTLET', label: 'THE OUTLET' }
 }
 
@@ -360,62 +359,55 @@ export function getZone(x, y) {
 // ax,ay = first (lowest index) cell of store face
 // size  = number of cells across the full facade
 export const STORE_GEOMETRY = {
-  // Main Hall
-  pixels:    { ax:18, ay:58, dir:'v', size:4 },
-  lumiterra: { ax:25, ay:58, dir:'v', size:4 },
-  // RPG Wing
-  apeiron:     { ax: 3, ay:47, dir:'h', size:4 },
-  lastodyssey: { ax: 3, ay:53, dir:'h', size:4 },
-  // Strategy Wing
-  kaidro:    { ax:35, ay:47, dir:'h', size:4 },
-  machines:  { ax:35, ay:53, dir:'h', size:4 },
-  // Food Court
-  wildforest: { ax:11, ay:58, dir:'h', size:4 },
-  // Axie Hall flagships
-  axie:      { ax:18, ay:30, dir:'v', size:4 },
-  atia:      { ax:25, ay:30, dir:'v', size:4 },
-  // W1  Arcade West  (x=0, dir:v)
-  infinitysoccer: { ax:0, ay: 8, dir:'v', size:4 },
-  tinydrift:      { ax:0, ay:12, dir:'v', size:4 },
-  // W2  Arcade North  (y=7, dir:h)
-  lunaciacup:     { ax:1, ay: 7, dir:'h', size:4 },
-  axieball:       { ax:5, ay: 7, dir:'h', size:4 },
-  // W3  Puzzle East  (x=45, dir:v)
-  axiequest:    { ax:45, ay: 8, dir:'v', size:4 },
-  puzzlechamps: { ax:45, ay:12, dir:'v', size:4 },
-  culinarywars: { ax:45, ay:16, dir:'v', size:4 },
-  // W4  Puzzle North  (y=7, dir:h)
-  triforce:     { ax:34, ay: 7, dir:'h', size:4 },
-  denofmyst:    { ax:38, ay: 7, dir:'h', size:4 },
-  // W5  Action South-Left  (y=18, x:11-18)
-  skysmash:      { ax:11, ay:18, dir:'h', size:4 },
-  axiewar:       { ax:15, ay:18, dir:'h', size:4 },
-  // W6  Action South-Right  (y=18, x:25-28)
-  trifields:     { ax:25, ay:18, dir:'h', size:4 },
-  // W7  Action West  (x=10, y:3-6)
-  tacticards:    { ax:10, ay: 3, dir:'v', size:4 },
-  // W8  Action East  (x=33, y:3-6)
-  acrosslunacia: { ax:33, ay: 3, dir:'v', size:4 },
-  // Tutorial Wing
-  tutorial_overview: { ax:38, ay:71, dir:'h', size:4 },
-  tutorial_trading:  { ax:46, ay:71, dir:'h', size:4 },
-  tutorial_dm:       { ax:38, ay:79, dir:'h', size:4 },
-  tutorial_group:    { ax:46, ay:79, dir:'h', size:4 },
-  tutorial_guild:    { ax:52, ay:73, dir:'v', size:4 },
-  // Discovery Wing
-  ragnarokgenesis:  { ax:0,  ay:55, dir:'v', size:4 },
-  ragnarokamerica:  { ax:0,  ay:59, dir:'v', size:4 },
-  aquariumquest:    { ax:2,  ay:67, dir:'h', size:4 },
-  thebeacon:        { ax:6,  ay:67, dir:'h', size:4 },
-  // Community Wing
-  partyicons:       { ax:42, ay:58, dir:'v', size:4 },
-  calamity:         { ax:42, ay:62, dir:'v', size:4 },
-  fableborne:       { ax:50, ay:58, dir:'v', size:4 },
-  // West Passage
-  fishingfrenzy:    { ax:5,  ay:71, dir:'h', size:4 },
-  craftworld:       { ax:9,  ay:71, dir:'h', size:4 },
-  chickensaga:      { ax:5,  ay:79, dir:'h', size:4 },
-  grandarena:       { ax:9,  ay:79, dir:'h', size:4 },
+  // RACING / SPORTS HALL — north wall y=1
+  infinitysoccer: { ax:2,  ay:1, dir:'h', size:4 },
+  axieball:       { ax:6,  ay:1, dir:'h', size:4 },
+  tinydrift:      { ax:10, ay:1, dir:'h', size:4 },
+  lunaciacup:     { ax:14, ay:1, dir:'h', size:4 },
+  // ACTION HALL — west wall x=1
+  skysmash:       { ax:1, ay:26, dir:'v', size:4 },
+  axiewar:        { ax:1, ay:30, dir:'v', size:4 },
+  tacticards:     { ax:1, ay:34, dir:'v', size:4 },
+  // FIGHTER WING — west wall x=1
+  trifields:      { ax:1, ay:41, dir:'v', size:4 },
+  acrosslunacia:  { ax:1, ay:45, dir:'v', size:4 },
+  // PUZZLE HALL — north wall y=7, west wall x=21
+  axiequest:    { ax:22, ay:7,  dir:'h', size:4 },
+  puzzlechamps: { ax:26, ay:7,  dir:'h', size:4 },
+  culinarywars: { ax:30, ay:7,  dir:'h', size:4 },
+  triforce:     { ax:21, ay:8,  dir:'v', size:4 },
+  denofmyst:    { ax:21, ay:12, dir:'v', size:4 },
+  // STRATEGY HALL — north wall y=5
+  kaidro:       { ax:38, ay:5, dir:'h', size:4 },
+  machines:     { ax:42, ay:5, dir:'h', size:4 },
+  wildforest:   { ax:46, ay:5, dir:'h', size:4 },
+  // AXIE FRANCHISE — north wall y=1
+  axie:         { ax:51, ay:1, dir:'h', size:4 },
+  atia:         { ax:55, ay:1, dir:'h', size:4 },
+  // SIMULATION HALL — east wall x=59, south wall y=31
+  pixels:       { ax:59, ay:23, dir:'v', size:4 },
+  lumiterra:    { ax:59, ay:27, dir:'v', size:4 },
+  craftworld:   { ax:55, ay:31, dir:'h', size:4 },
+  // ADVENTURE HALL — west wall x=39, east wall x=59
+  apeiron:          { ax:39, ay:40, dir:'v', size:4 },
+  lastodyssey:      { ax:39, ay:44, dir:'v', size:4 },
+  ragnarokgenesis:  { ax:39, ay:48, dir:'v', size:4 },
+  ragnarokamerica:  { ax:59, ay:40, dir:'v', size:4 },
+  thebeacon:        { ax:59, ay:44, dir:'v', size:4 },
+  // RPG HALL — north y=41, west x=19, south y=55
+  aquariumquest:    { ax:21, ay:41, dir:'h', size:4 },
+  calamity:         { ax:31, ay:41, dir:'h', size:4 },
+  fishingfrenzy:    { ax:19, ay:43, dir:'v', size:4 },
+  partyicons:       { ax:19, ay:47, dir:'v', size:4 },
+  fableborne:       { ax:21, ay:55, dir:'h', size:4 },
+  // TUTORIAL LOBBY — west wall x=61, south wall y=57
+  tutorial_overview: { ax:61, ay:23, dir:'v', size:4 },
+  tutorial_trading:  { ax:61, ay:27, dir:'v', size:4 },
+  tutorial_dm:       { ax:61, ay:31, dir:'v', size:4 },
+  tutorial_group:    { ax:61, ay:35, dir:'v', size:4 },
+  tutorial_guild:    { ax:61, ay:39, dir:'v', size:4 },
+  chickensaga:       { ax:63, ay:57, dir:'h', size:4 },
+  grandarena:        { ax:67, ay:57, dir:'h', size:4 },
 }
 
 // ── Tutorial Wing stores ──────────────────────────────────────

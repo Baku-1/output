@@ -16,7 +16,7 @@ import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE, GROQ_API_KEY, GRO
 import { initTouch, isTouchDevice, touchMoveX, touchMoveY, consumeRotation, setInteractCallback, setInteractVisible } from './touch.js'
 
 // ── Camera state ──────────────────────────────────────────────
-let posX=21.5, posY=53.5, dirX=0, dirY=-1
+let posX=47.5, posY=34.5, dirX=0, dirY=-1
 let plX=FOV_PLANE, plY=0
 
 // ── Camera mode ───────────────────────────────────────────────
@@ -332,10 +332,10 @@ function update(dt) {
     }
   }
 
-  // Tutorial splash — one-shot trigger entering the south connecting hall
+  // Tutorial splash — one-shot trigger entering the Tutorial Lobby
   if (!_tutorialSplashShown
-      && posX >= 30.0 && posX <= 35.5
-      && posY >= 73.5 && posY <= 76.5) {
+      && posX >= 62.0 && posX <= 70.0
+      && posY >= 48.0 && posY <= 56.0) {
     _tutorialSplashShown = true
     _showTutorialSplash()
   }
