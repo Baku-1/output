@@ -17,12 +17,18 @@ vi.mock('./wallet.js', () => ({
   getAddress:    vi.fn(() => '0xmyaddr'),
   shortAddress:  vi.fn(addr => addr.slice(0, 6) + '…'),
 }))
+vi.mock('@sky-mavis/mavis-market-core', () => ({
+  getCollections: vi.fn(),
+  ChainId: { mainnet: 2020, testnet: 202601 },
+}))
 
 import { fetchWalletNFTs } from './nftService.js'
+import { getCollections } from '@sky-mavis/mavis-market-core'
 import {
   openTradeOfferUI,
   closeTradeOfferUI,
   isTradeOfferUIOpen,
+  loadTradeableContracts,
   TRADEABLE_CONTRACTS,
 } from './tradeOfferFlow.js'
 
@@ -49,6 +55,75 @@ describe('TRADEABLE_CONTRACTS', () => {
 
   it('is a Set (supports .has / .add / .delete)', () => {
     expect(TRADEABLE_CONTRACTS).toBeInstanceOf(Set)
+  })
+})
+
+// ─── loadTradeableContracts ───────────────────────────────────────────────
+
+describe('loadTradeableContracts', () => {
+  const AXIE = '0x32950db2a7164ae833121501c797d79e7b79d74c'
+  const COL_A = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  const COL_B = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+
+  const page = (...addrs) => ({
+    erc721Collections: addrs.map(a => ({ tokenAddress: a })),
+    erc1155Collections: [],
+  })
+
+  beforeEach(() => {
+    getCollections.mockClear()
+    TRADEABLE_CONTRACTS.clear()
+    TRADEABLE_CONTRACTS.add(AXIE)
+  })
+
+  it('replaces TRADEABLE_CONTRACTS with addresses from Mavis Market', async () => {
+    getCollections.mockResolvedValue(page(COL_A, COL_B))
+    await loadTradeableContracts()
+    expect(TRADEABLE_CONTRACTS.has(COL_A)).toBe(true)
+    expect(TRADEABLE_CONTRACTS.has(COL_B)).toBe(true)
+    expect(TRADEABLE_CONTRACTS.has(AXIE)).toBe(false) // old default replaced
+  })
+
+  it('lowercases all addresses', async () => {
+    getCollections.mockResolvedValue(page(COL_A.toUpperCase()))
+    await loadTradeableContracts()
+    expect(TRADEABLE_CONTRACTS.has(COL_A)).toBe(true)
+  })
+
+  it('uses ChainId.mainnet (2020)', async () => {
+    getCollections.mockResolvedValue(page(COL_A))
+    await loadTradeableContracts()
+    expect(getCollections).toHaveBeenCalledWith(
+      expect.objectContaining({ chainId: 2020 })
+    )
+  })
+
+  it('paginates until a page smaller than the batch size is returned', async () => {
+    // First call returns 100 results, second returns 1 → stops
+    const fullPage = page(...Array.from({ length: 100 }, (_, i) =>
+      `0x${String(i).padStart(40, '0')}`
+    ))
+    const lastPage = page(COL_B)
+    getCollections
+      .mockResolvedValueOnce(fullPage)
+      .mockResolvedValueOnce(lastPage)
+
+    await loadTradeableContracts()
+    expect(getCollections).toHaveBeenCalledTimes(2)
+    expect(TRADEABLE_CONTRACTS.has(COL_B)).toBe(true)
+    expect(TRADEABLE_CONTRACTS.size).toBe(101)
+  })
+
+  it('keeps defaults when Mavis Market returns an empty list', async () => {
+    getCollections.mockResolvedValue({ erc721Collections: [], erc1155Collections: [] })
+    await loadTradeableContracts()
+    expect(TRADEABLE_CONTRACTS.has(AXIE)).toBe(true) // unchanged
+  })
+
+  it('keeps defaults when the API call throws', async () => {
+    getCollections.mockRejectedValue(new Error('network error'))
+    await expect(loadTradeableContracts()).rejects.toThrow('network error')
+    expect(TRADEABLE_CONTRACTS.has(AXIE)).toBe(true) // unchanged
   })
 })
 

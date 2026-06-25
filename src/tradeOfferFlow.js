@@ -26,13 +26,50 @@ import { createTradeOrder, serialiseOrder, getRoninProvider } from './trade.js'
 import { sendMessage, sendToInbox } from './dmService.js'
 import { fetchWalletNFTs } from './nftService.js'
 import { getAddress, shortAddress } from './wallet.js'
+import { getCollections, ChainId } from '@sky-mavis/mavis-market-core'
 
 // Add contract addresses here (all lowercase) to make a collection tradeable.
+// loadTradeableContracts() replaces this set at runtime with every ERC-721
+// collection listed on Mavis Market, so manual entries are only needed as
+// offline fallbacks.
 export const TRADEABLE_CONTRACTS = new Set([
   '0x32950db2a7164ae833121501c797d79e7b79d74c', // Axies
 ])
 
-const MAX_PAGES = 20   // 20 pages x 24 NFTs = 480 NFTs max per wallet
+const COLLECTION_BATCH = 100
+const MAX_PAGES        = 20   // 20 pages x 24 NFTs = 480 NFTs max per wallet
+
+// Fetch every ERC-721 collection from Mavis Market and replace TRADEABLE_CONTRACTS.
+// Called once by dmPanel._requireTradeModules() before the trade UI opens.
+// On error or empty result the set is left unchanged (offline fallback).
+export async function loadTradeableContracts() {
+  let from       = 0
+  const found    = new Set()
+
+  while (true) {
+    const { erc721Collections } = await getCollections({
+      chainId: ChainId.mainnet,
+      from,
+      size: COLLECTION_BATCH,
+    })
+
+    for (const col of erc721Collections) {
+      if (col.tokenAddress) found.add(col.tokenAddress.toLowerCase())
+    }
+
+    if (erc721Collections.length < COLLECTION_BATCH) break
+    from += COLLECTION_BATCH
+  }
+
+  if (found.size === 0) {
+    console.warn('[tradeOfferFlow] Mavis Market returned no ERC-721 collections — keeping defaults')
+    return
+  }
+
+  TRADEABLE_CONTRACTS.clear()
+  for (const addr of found) TRADEABLE_CONTRACTS.add(addr)
+  console.log(`[tradeOfferFlow] ${found.size} tradeable contracts loaded from Mavis Market`)
+}
 
 // Display allow-list — same discipline as dmPanel._safeTokenId (Fix #8)
 const _TOKEN_RE   = /^[a-zA-Z0-9_-]{1,64}$/

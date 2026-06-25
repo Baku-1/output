@@ -28,6 +28,11 @@ async function _requireTradeModules() {
   if (_trade && _tradeOfferFlow) return
   _trade          = await import('./trade.js')
   _tradeOfferFlow = await import('./tradeOfferFlow.js')
+  // Populate tradeable contracts from Mavis Market before the UI opens.
+  // Errors are non-fatal — TRADEABLE_CONTRACTS already holds the Axie fallback.
+  await _tradeOfferFlow.loadTradeableContracts().catch(err =>
+    console.warn('[dmPanel] could not fetch tradeable contracts:', err)
+  )
 }
 
 let _panel        = null
