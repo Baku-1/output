@@ -104,10 +104,14 @@ function _makeCard(nft, address, resolve) {
   // Thumbnail — resolve through IPFS gateway fallback chain asynchronously.
   // The card renders immediately with a placeholder; the real image swaps in
   // once a gateway responds (or stays as placeholder if all fail).
+  const thumbWrap = document.createElement('div')
+  thumbWrap.className = 'ap-thumb-wrap'
+
   const img = document.createElement('img')
   img.className = 'ap-thumb'
   img.alt = nft.name
   img.src = PLACEHOLDER_SVG   // instant paint; replaced below if a gateway works
+  thumbWrap.appendChild(img)
 
   const noPreview = document.createElement('div')
   noPreview.className = 'ap-no-preview'
@@ -130,7 +134,7 @@ function _makeCard(nft, address, resolve) {
   sub.className = 'ap-sub'
   sub.textContent = nft.collectionName
 
-  card.appendChild(img)
+  card.appendChild(thumbWrap)
   card.appendChild(noPreview)
   card.appendChild(label)
   card.appendChild(sub)

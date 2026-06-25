@@ -161,7 +161,8 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 .ap-body::-webkit-scrollbar{width:3px}.ap-body::-webkit-scrollbar-thumb{background:rgba(0,229,255,.2)}
 .ap-card{background:#0a0a1a;border:1px solid rgba(255,255,255,.07);cursor:pointer;display:flex;flex-direction:column;overflow:hidden;transition:border-color .18s,transform .18s}
 .ap-card:hover{border-color:#00e5ff;transform:translateY(-2px)}
-.ap-thumb{width:100%;aspect-ratio:1;object-fit:contain;background:#0a0a14;display:block}
+.ap-thumb-wrap{width:100%;aspect-ratio:1;overflow:hidden;flex-shrink:0;background:#0a0a14}
+.ap-thumb{width:100%;height:100%;object-fit:contain;display:block}
 .ap-no-preview{width:100%;aspect-ratio:1;background:#0a0a14;display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.18);text-transform:uppercase}
 .ap-label{padding:6px 8px 2px;font-size:11px;font-weight:600;color:rgba(255,255,255,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ap-sub{padding:0 8px 7px;font-size:9px;color:rgba(255,255,255,.3);letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
