@@ -3,8 +3,8 @@
 // The Outlet — WebZone 001
 //
 // Opens a modal that lets Player A:
-//   1. Pick one of their Axies to offer        (#tof-my-list)
-//   2. Pick one of Player B's Axies to receive (#tof-their-list)
+//   1. Pick one of their NFTs to offer         (#tof-my-list)
+//   2. Pick one of Player B's NFTs to receive  (#tof-their-list)
 // Then signs the Seaport order (off-chain) and sends it as a DM.
 //
 // Both grids are fetched via the same wallet-agnostic
@@ -27,8 +27,12 @@ import { sendMessage, sendToInbox } from './dmService.js'
 import { fetchWalletNFTs } from './nftService.js'
 import { getAddress, shortAddress } from './wallet.js'
 
-const AXIE_CONTRACT = '0x32950db2a7164ae833121501c797d79e7b79d74c'
-const MAX_PAGES     = 20   // 20 pages x 24 NFTs = 480 NFTs max per wallet
+// Add contract addresses here (all lowercase) to make a collection tradeable.
+export const TRADEABLE_CONTRACTS = new Set([
+  '0x32950db2a7164ae833121501c797d79e7b79d74c', // Axies
+])
+
+const MAX_PAGES = 20   // 20 pages x 24 NFTs = 480 NFTs max per wallet
 
 // Display allow-list — same discipline as dmPanel._safeTokenId (Fix #8)
 const _TOKEN_RE   = /^[a-zA-Z0-9_-]{1,64}$/
@@ -49,11 +53,11 @@ function _ensureDOM() {
         <button id="tof-close">✕</button>
       </div>
       <div id="tof-body">
-        <p class="tof-label">YOUR AXIE (offer)</p>
+        <p class="tof-label">YOUR NFT (offer)</p>
         <div id="tof-my-list" class="tof-grid"><span class="tof-loading">Loading NFTs…</span></div>
-        <p class="tof-label">THEIR AXIE (you receive)</p>
+        <p class="tof-label">THEIR NFT (you receive)</p>
         <div id="tof-their-list" class="tof-grid"><span class="tof-loading">Loading NFTs…</span></div>
-        <p class="tof-hint">⚠ Both of you need Axie contract approval. seaport-js handles this automatically.</p>
+        <p class="tof-hint">⚠ Both of you need NFT contract approval. seaport-js handles this automatically.</p>
         <button id="tof-send" disabled>Sign &amp; Send Offer</button>
         <div id="tof-status"></div>
       </div>
@@ -91,10 +95,10 @@ function _safeImgUrl(url) {
   return null
 }
 
-// -- Shared paginated Axie fetch (wallet-agnostic) ---------------
+// -- Shared paginated NFT fetch (wallet-agnostic) ----------------
 // Throws only if the FIRST page fails; mid-pagination errors are
 // captured as partialError so the caller can render a partial grid.
-async function _fetchAllAxies(addr) {
+async function _fetchAllNFTs(addr) {
   const allNfts = []
   let cursor       = null
   let pageCount    = 0
@@ -118,10 +122,10 @@ async function _fetchAllAxies(addr) {
   }
   if (cursor && pageCount >= MAX_PAGES) hitCap = true
 
-  const axies = allNfts.filter(n =>
-    n.contractAddress?.toLowerCase() === AXIE_CONTRACT
+  const nfts = allNfts.filter(n =>
+    TRADEABLE_CONTRACTS.has(n.contractAddress?.toLowerCase())
   )
-  return { axies, totalFetched: allNfts.length, pageCount, hitCap, partialError }
+  return { nfts, totalFetched: allNfts.length, pageCount, hitCap, partialError }
 }
 
 // Open
@@ -153,11 +157,11 @@ export async function openTradeOfferUI(theirAddr) {
   const myAddr = getAddress()
   await Promise.all([
     _loadGrid(gen, 'tof-my-list', myAddr, {
-      emptyText: 'No Axies in wallet',
+      emptyText: 'No tradeable NFTs in wallet',
       onSelect:  nft => { _selectedNFT = nft; _updateSendButton() },
     }),
     _loadGrid(gen, 'tof-their-list', _theirAddr, {
-      emptyText: 'They have no Axies to request — trade not possible',
+      emptyText: 'They have no tradeable NFTs — trade not possible',
       onSelect:  nft => { _selectedWantNFT = nft; _updateSendButton() },
     }),
   ])
@@ -166,12 +170,12 @@ export async function openTradeOfferUI(theirAddr) {
 // Load one wallet into one grid. Never throws.
 async function _loadGrid(gen, listId, addr, { emptyText, onSelect }) {
   try {
-    const { axies, totalFetched, pageCount, hitCap, partialError } =
-      await _fetchAllAxies(addr)
+    const { nfts, totalFetched, pageCount, hitCap, partialError } =
+      await _fetchAllNFTs(addr)
     if (gen !== _openGen) return   // F1: modal closed/reopened — discard
 
     const list = document.getElementById(listId)
-    _renderNFTList(list, axies, emptyText, onSelect)
+    _renderNFTList(list, nfts, emptyText, onSelect)
 
     if (hitCap || partialError) {
       const warn = document.createElement('p')
@@ -205,11 +209,11 @@ export function isTradeOfferUIOpen() {
 // Render an NFT grid — DOM construction only, no innerHTML with
 // interpolated metadata (spec R1). Cards with non-allow-listed token
 // IDs are skipped (R2); image URLs must parse as http(s) (R3).
-function _renderNFTList(list, axies, emptyText, onSelect) {
+function _renderNFTList(list, nfts, emptyText, onSelect) {
   list.textContent = ''
   let rendered = 0
 
-  axies.forEach(nft => {
+  nfts.forEach(nft => {
     const tokenId = _safeTokenId(nft.tokenId)
     if (!tokenId) {
       console.warn('[tradeOfferFlow] skipping NFT with invalid token ID:', nft.tokenId)
@@ -282,7 +286,7 @@ async function _handleSend() {
     const signer   = await provider.getSigner()
 
     const wantNFT = {
-      contractAddress: AXIE_CONTRACT,
+      contractAddress: _selectedWantNFT.contractAddress,
       tokenId:         wantId,
     }
 
@@ -300,7 +304,7 @@ async function _handleSend() {
 
     await sendMessage(_theirAddr, {
       type: 'trade_offer',
-      content: `Trade offer: my Axie #${offerId} for your Axie #${wantId}`,
+      content: `Trade offer: NFT #${offerId} for NFT #${wantId}`,
       trade_payload: {
         orderJson:             serialiseOrder(order),
         orderHash,
@@ -313,7 +317,7 @@ async function _handleSend() {
     // Notify recipient's inbox channel (best-effort; do not await).
     // Finding 7: .toLowerCase() on myAddr before inbox payload -- getAddress()
     // may return EIP-55 checksum form; _theirAddr is already lowercase.
-    const summary = `Axie #${offerId} for #${wantId}`
+    const summary = `NFT #${offerId} for #${wantId}`
     sendToInbox(_theirAddr, {
       from:    myAddr.toLowerCase(),
       type:    'trade_offer',

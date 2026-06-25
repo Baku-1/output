@@ -23,18 +23,34 @@ import {
   openTradeOfferUI,
   closeTradeOfferUI,
   isTradeOfferUIOpen,
+  TRADEABLE_CONTRACTS,
 } from './tradeOfferFlow.js'
 
-const AXIE_CONTRACT = '0x32950db2a7164ae833121501c797d79e7b79d74c'
+// Axie contract is always in the tradeable set
+const AXIE_CONTRACT  = '0x32950db2a7164ae833121501c797d79e7b79d74c'
+// A second contract we'll add in multi-contract tests
+const OTHER_CONTRACT = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
-const makeNFT = (tokenId, imageUrl = `https://img.example.com/${tokenId}.png`) => ({
-  contractAddress: AXIE_CONTRACT,
+const makeNFT = (tokenId, contract = AXIE_CONTRACT, imageUrl = `https://img.example.com/${tokenId}.png`) => ({
+  contractAddress: contract,
   tokenId,
   imageUrl,
 })
 
-const emptyPage = () => Promise.resolve({ nfts: [], nextCursor: null })
-const singlePage = nfts => Promise.resolve({ nfts, nextCursor: null })
+const emptyPage  = ()    => Promise.resolve({ nfts: [], nextCursor: null })
+const singlePage = nfts  => Promise.resolve({ nfts, nextCursor: null })
+
+// ─── TRADEABLE_CONTRACTS set ──────────────────────────────────────────────
+
+describe('TRADEABLE_CONTRACTS', () => {
+  it('contains the Axie contract by default', () => {
+    expect(TRADEABLE_CONTRACTS.has(AXIE_CONTRACT)).toBe(true)
+  })
+
+  it('is a Set (supports .has / .add / .delete)', () => {
+    expect(TRADEABLE_CONTRACTS).toBeInstanceOf(Set)
+  })
+})
 
 // ─── isTradeOfferUIOpen / closeTradeOfferUI ────────────────────────────────
 
@@ -103,12 +119,12 @@ describe('NFT grid – token ID sanitisation', () => {
     expect(document.querySelectorAll('#tof-my-list .tof-nft-card').length).toBe(3)
   })
 
-  it('shows empty message when no Axies are in the wallet', async () => {
+  it('shows empty message when wallet has no tradeable NFTs', async () => {
     fetchWalletNFTs.mockResolvedValue(singlePage([]))
     await openTradeOfferUI('0xpeer')
     const empty = document.querySelector('#tof-my-list .tof-empty')
     expect(empty).not.toBeNull()
-    expect(empty.textContent).toContain('No Axies')
+    expect(empty.textContent).toContain('No tradeable NFTs')
   })
 })
 
@@ -118,7 +134,7 @@ describe('NFT grid – image URL sanitisation', () => {
   afterEach(() => closeTradeOfferUI())
 
   it('renders an <img> for a valid https image URL', async () => {
-    fetchWalletNFTs.mockResolvedValueOnce(singlePage([makeNFT('1', 'https://cdn.example.com/1.png')]))
+    fetchWalletNFTs.mockResolvedValueOnce(singlePage([makeNFT('1', AXIE_CONTRACT, 'https://cdn.example.com/1.png')]))
     fetchWalletNFTs.mockResolvedValueOnce(singlePage([]))
     await openTradeOfferUI('0xpeer')
     const img = document.querySelector('#tof-my-list .tof-nft-card img')
@@ -127,7 +143,7 @@ describe('NFT grid – image URL sanitisation', () => {
   })
 
   it('renders an <img> for a valid http image URL', async () => {
-    fetchWalletNFTs.mockResolvedValueOnce(singlePage([makeNFT('2', 'http://cdn.example.com/2.png')]))
+    fetchWalletNFTs.mockResolvedValueOnce(singlePage([makeNFT('2', AXIE_CONTRACT, 'http://cdn.example.com/2.png')]))
     fetchWalletNFTs.mockResolvedValueOnce(singlePage([]))
     await openTradeOfferUI('0xpeer')
     const img = document.querySelector('#tof-my-list .tof-nft-card img')
@@ -135,7 +151,7 @@ describe('NFT grid – image URL sanitisation', () => {
   })
 
   it('suppresses <img> for a javascript: URL', async () => {
-    fetchWalletNFTs.mockResolvedValueOnce(singlePage([makeNFT('3', 'javascript:alert(1)')]))
+    fetchWalletNFTs.mockResolvedValueOnce(singlePage([makeNFT('3', AXIE_CONTRACT, 'javascript:alert(1)')]))
     fetchWalletNFTs.mockResolvedValueOnce(singlePage([]))
     await openTradeOfferUI('0xpeer')
     // Card should still be rendered (token ID is valid), but no img element
@@ -145,7 +161,7 @@ describe('NFT grid – image URL sanitisation', () => {
   })
 
   it('suppresses <img> for a data: URL', async () => {
-    fetchWalletNFTs.mockResolvedValueOnce(singlePage([makeNFT('4', 'data:text/html,<h1>xss</h1>')]))
+    fetchWalletNFTs.mockResolvedValueOnce(singlePage([makeNFT('4', AXIE_CONTRACT, 'data:text/html,<h1>xss</h1>')]))
     fetchWalletNFTs.mockResolvedValueOnce(singlePage([]))
     await openTradeOfferUI('0xpeer')
     const card = document.querySelector('#tof-my-list .tof-nft-card')
@@ -161,6 +177,44 @@ describe('NFT grid – image URL sanitisation', () => {
     const card = document.querySelector('#tof-my-list .tof-nft-card')
     expect(card).not.toBeNull()
     expect(card.querySelector('img')).toBeNull()
+  })
+})
+
+// ─── Multi-contract support ────────────────────────────────────────────────
+
+describe('multi-contract support', () => {
+  afterEach(() => {
+    TRADEABLE_CONTRACTS.delete(OTHER_CONTRACT)
+    closeTradeOfferUI()
+  })
+
+  it('filters out NFTs from contracts not in TRADEABLE_CONTRACTS', async () => {
+    const unknown = makeNFT('1', '0xunknowncontract')
+    const axie    = makeNFT('2', AXIE_CONTRACT)
+    fetchWalletNFTs.mockResolvedValueOnce(singlePage([unknown, axie]))
+    fetchWalletNFTs.mockResolvedValueOnce(singlePage([]))
+    await openTradeOfferUI('0xpeer')
+    expect(document.querySelectorAll('#tof-my-list .tof-nft-card').length).toBe(1)
+    expect(document.querySelector('#tof-my-list .tof-nft-card').dataset.tokenId).toBe('2')
+  })
+
+  it('shows NFTs from a second contract once added to TRADEABLE_CONTRACTS', async () => {
+    TRADEABLE_CONTRACTS.add(OTHER_CONTRACT)
+    const axie  = makeNFT('10', AXIE_CONTRACT)
+    const other = makeNFT('20', OTHER_CONTRACT)
+    fetchWalletNFTs.mockResolvedValueOnce(singlePage([axie, other]))
+    fetchWalletNFTs.mockResolvedValueOnce(singlePage([]))
+    await openTradeOfferUI('0xpeer')
+    expect(document.querySelectorAll('#tof-my-list .tof-nft-card').length).toBe(2)
+  })
+
+  it('contract matching is case-insensitive', async () => {
+    const upperCaseContract = AXIE_CONTRACT.toUpperCase()
+    const nft = { contractAddress: upperCaseContract, tokenId: '99', imageUrl: 'https://x.com/99.png' }
+    fetchWalletNFTs.mockResolvedValueOnce(singlePage([nft]))
+    fetchWalletNFTs.mockResolvedValueOnce(singlePage([]))
+    await openTradeOfferUI('0xpeer')
+    expect(document.querySelectorAll('#tof-my-list .tof-nft-card').length).toBe(1)
   })
 })
 
@@ -185,15 +239,6 @@ describe('openTradeOfferUI – state reset between sessions', () => {
     fetchWalletNFTs.mockResolvedValue(singlePage([]))
     await openTradeOfferUI('0xpeer')
     expect(document.getElementById('tof-send').disabled).toBe(true)
-  })
-
-  it('filters out non-Axie NFTs from the grid', async () => {
-    const nonAxie = { contractAddress: '0xother', tokenId: '1', imageUrl: 'https://x.com/1.png' }
-    const axie    = makeNFT('2')
-    fetchWalletNFTs.mockResolvedValueOnce(singlePage([nonAxie, axie]))
-    fetchWalletNFTs.mockResolvedValueOnce(singlePage([]))
-    await openTradeOfferUI('0xpeer')
-    expect(document.querySelectorAll('#tof-my-list .tof-nft-card').length).toBe(1)
   })
 })
 
