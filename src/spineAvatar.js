@@ -96,6 +96,7 @@ export class SpineAvatarInstance {
    */
   constructor ({ isSelf = false } = {}) {
     this._isSelf   = isSelf
+    this.isSpine   = true
     this._canvas   = null     // SHARED canvas (manager's) — set after init
     this._srcRect  = null     // { x, y, w, h } slot region in the shared canvas
     this._slot     = null     // slot index, or null

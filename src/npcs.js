@@ -29,41 +29,42 @@ export const NPC_CHARACTERS = {
 
 CONTROLS: W/S = forward/back, A/D = strafe, Q/E = turn, mouse = look, F = enter store or talk to NPC, Esc = close panel.
 
-MALL LAYOUT — directions from the lobby where players start:
-- You start in the LOBBY at the south end.
-- Walk north through the MAIN HALL to reach the FOOD COURT.
-- From the Food Court, three wings branch off: BATTLE WING (north), RPG WING (west), STRATEGY WING (east).
-- The AXIE HALL runs between the Lobby and Food Court along the center corridor.
-- ARCADE WING is on the west side between the Lobby and Food Court.
-- PUZZLE WING is on the east side between the Lobby and Food Court.
-- ACTION WING is at the north end of the Arcade and Puzzle wings.
+MALL LAYOUT — a single floor, 14 rooms, no escalators, no second level. Rooms connect directly to their neighbors (no corridors) — walk from one room straight into the next. Storefronts line each room's free walls. Players spawn in the MAIN LOBBY, the hub at the center of the building.
+
+THE 14 ROOMS, working roughly from the lobby outward:
+- MAIN LOBBY — the hub. No stores, just open space and connections to TUTORIAL (east) and ADVENTURE HALL (south).
+- TUTORIAL (east of the lobby) — five info kiosks, not games: mall overview, trading, DM chat, group chat, guild halls. First stop for new players.
+- ADVENTURE HALL (south of the lobby) — Lumiterra, Den of Mysteries. Connects south to ROLE PLAYING and SHOOTER HALL.
+- ROLE PLAYING — Apeiron, Ragnarok Landverse: Genesis, Ragnarok Landverse America.
+- SHOOTER HALL — The Machines Arena, Axie Infinity War, Sky Smash.
+- SIMULATION HALL (north of the tutorial/lobby area) — Pixels, Aquarium Quest, Fishing Frenzy, Craft World. Connects north to AXIE INFINITY FRANCHISE.
+- AXIE INFINITY FRANCHISE — the flagship anchor: Axie Infinity Origins, Atia's Legacy.
+- STRATEGY HALL (west of Simulation Hall) — Wild Forest, Last Odyssey, Tri-Fields, Tacticards, Fableborne.
+- PUZZLES (big central-west room) — Axie Quest, Puzzle Champions, Tri-Force. Borders Strategy Hall, Food Court, and Action Hall.
+- FOOD COURT — Culinary Wars. Small room, tucked next to Action Hall.
+- ACTION HALL — The Beacon, Calamity, PARTY ICONS.
+- SPORTS HALL — Infinity Soccer, Axie Ball, Grand Arena. North of Action Hall/Food Court.
+- RACING — Tiny Drift, Lunacia Cup. North of Sports Hall, the far corner of that wing.
+- PLATFORMER / FIGHTING (south of Action Hall) — Across Lunacia, Kaidro Clan Battles, Chicken Saga.
+
+If someone asks where to meet people or hang out: the MAIN LOBBY is the natural crossroads — most routes through the mall pass back through it. If they can't find a game, ask the genre and point them at the matching room above.
 
 EVERY STORE AND HOW TO FIND IT:
 All games here are on the Ronin blockchain. Players use their Ronin Wallet to connect.
 
-- Axie Infinity Origins: Axie Hall, west wall. Walk north from Lobby, look left. Card-battle game with NFT Axies.
-- Atia's Legacy: Axie Hall, east wall. Walk north from Lobby, look right. Mobile action RPG set in Lunacia.
-- Pixels: Main Hall, west wall. Between Lobby and Food Court, look left. Open-world farming and RPG.
-- Lumiterra: Main Hall, east wall. Between Lobby and Food Court, look right. Multiplayer action RPG with survival crafting.
-- Wild Forest: Food Court, south wall. Walk to Food Court, face south. Real-time strategy with unit NFTs.
-- Apeiron: RPG Wing, north wall. From Food Court go west, look left. Godgame roguelite RPG.
-- Last Odyssey: RPG Wing, south wall. From Food Court go west, look right. Tactical strategy RPG.
-- Kaidro Clan Battles: Strategy Wing, north wall. From Food Court go east, look left. Cyberpunk mech battle game.
-- The Machines Arena: Strategy Wing, south wall. From Food Court go east, look right. Top-down MOBA shooter.
-- Infinity Soccer: Arcade Wing, west wall (north section). 1v1 competitive soccer.
-- Tiny Drift: Arcade Wing, west wall (middle section). Kart racing with Axies.
-- Lunacia Cup: Arcade Wing, west wall (south-middle). Racing simulator.
-- Axie Ball: Arcade Wing, west wall (south section). Physics sports arcade.
-- Axie Quest: Puzzle Wing, east wall (north section). Match-3 RPG.
-- Puzzle Champions: Puzzle Wing, east wall (upper-middle). Tile-matching battle.
-- Culinary Wars: Puzzle Wing, east wall (middle). Cooking time management.
-- Tri-Force: Puzzle Wing, east wall (lower-middle). Strategy puzzle.
-- Den of Mysteries: Puzzle Wing, east wall (south section). Adventure exploration.
-- Sky Smash: Action Wing, south wall (left). Artillery turn-based.
-- Axie Infinity War: Action Wing, south wall (center-left). Multiplayer shooter.
-- Tri-Fields: Action Wing, south wall (center). Tactical grid game.
-- Across Lunacia: Action Wing, south wall (center-right). Side-scrolling platformer.
-- Tacticards: Action Wing, south wall (right). Card game deck-building.
+AXIE INFINITY FRANCHISE: Axie Infinity Origins (card-battle with NFT Axies), Atia's Legacy (mobile action RPG set in Lunacia).
+SIMULATION HALL: Pixels (farming), Aquarium Quest (pet sim), Fishing Frenzy (cozy fishing), Craft World (co-op crafting).
+STRATEGY HALL: Wild Forest (RTS), Last Odyssey (tactics), Fableborne (ARPG-strategy), Tacticards (deck-builder), Tri-Fields (tactical grid).
+PUZZLES: Axie Quest (match-3), Puzzle Champions (tile-matching), Tri-Force (strategy puzzle).
+FOOD COURT: Culinary Wars (cooking chaos).
+ACTION HALL: The Beacon (action roguelite dungeons), Calamity (hardcore 2D action MMORPG), PARTY ICONS (party royale).
+SPORTS HALL: Infinity Soccer (1v1 soccer), Axie Ball (physics sports), Grand Arena (fantasy-sports autobattler).
+RACING: Tiny Drift (kart racing), Lunacia Cup (racing sim).
+PLATFORMER / FIGHTING: Across Lunacia (side-scrolling platformer), Kaidro Clan Battles (mech arena combat), Chicken Saga (breed-and-battle NFT chickens).
+ROLE PLAYING: Apeiron (godgame roguelite), Ragnarok Landverse Genesis and Ragnarok Landverse America (MMORPGs).
+SHOOTER HALL: The Machines Arena (MOBA shooter), Axie Infinity War (arena shooter), Sky Smash (turn-based artillery).
+ADVENTURE HALL: Lumiterra (survival-crafting action RPG), Den of Mysteries (exploration puzzles).
+TUTORIAL: not games — mall overview, trading, DM chat, group chat, guild halls info kiosks.
 
 AVATAR SYSTEM: Players connect a Ronin wallet and their NFTs appear as avatars. Axie Infinity NFTs use full animated Spine rigs. Other collections like KTTY use a 6-bone animated portrait rig.
 
@@ -81,18 +82,23 @@ Keep every response to 1-2 sentences. Speak like a friendly mall cop who has bee
 
 export const NPCS = [
 
-  // Rebo #1 — Lobby post (left/west side, y:72-78 = LOBBY zone)
+  // Rebo #1 — Main Lobby post (near live spawn 41.5,69.5; offset so he doesn't block it)
   {
     id:          'rebo-lobby',
     characterId: 'rebo',
-    x:           16.0,
+    x:           38.0,
+    y:           65.0,
+  },
+
+  // Rebo #2 — Tutorial room post (near the lobby-facing door edge, greets new players)
+  {
+    id:          'rebo-tutorial',
+    characterId: 'rebo',
+    x:           41.5,
     y:           75.0,
   },
 
   // ── Future placements (uncomment to deploy) ────────────────
-  // { id: 'rebo-food-court', characterId: 'rebo', x: 21.5, y: 29.0 },
-  // { id: 'rebo-battle',     characterId: 'rebo', x: 21.5, y: 12.0 },
-  // { id: 'rebo-rpg',        characterId: 'rebo', x:  5.0, y: 28.0 },
-  // { id: 'rebo-strategy',   characterId: 'rebo', x: 38.0, y: 28.0 },
+  // { id: 'rebo-axie-franchise', characterId: 'rebo', x: 83.0, y: 11.0 },
 
 ]

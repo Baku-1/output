@@ -26,6 +26,7 @@ export const GENERIC_CANVAS_SIZE = 128
 export class GenericSpineAvatarInstance {
   constructor(canvasSize = GENERIC_CANVAS_SIZE) {
     this._size   = canvasSize
+    this.isGenericSpine = true
     this._canvas = document.createElement('canvas')
     this._canvas.width = this._canvas.height = canvasSize
     this._ctx    = this._canvas.getContext('2d', { willReadFrequently: false })

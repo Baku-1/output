@@ -7,12 +7,17 @@
 //   → putImageData (upscale) → Canvas overlays (crosshair, vignette, name tags)
 // ═══════════════════════════════════════════════════════════════
 import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, STORE_GEOMETRY,
-         WING_COLORS, getZone, TUTORIAL_STORES } from './map.js'
+         WING_COLORS, getZone, TUTORIAL_STORES, TALL_CELLS, SKY_RECTS } from './map.js'
 import { RENDER_SCALE, WALL_HEIGHT, AVATAR_TEX_SIZE, AVATAR_SPRITE_SCALE, WALL_TEX_SIZE, STORE_TEX_SIZE } from './config.js'
 import { NPCS, NPC_CHARACTERS } from './npcs.js'
-import { SpineAvatarInstance, SPINE_CANVAS_W, SPINE_CANVAS_H, SPINE_CANVAS_FEET_Y } from './spineAvatar.js'
-import { GenericSpineAvatarInstance } from './genericSpineAvatar.js'
-import { renderAll as renderSpineSlots } from './spineAvatarManager.js'
+const SPINE_CANVAS_W = 800
+const SPINE_CANVAS_H = 600
+const SPINE_CANVAS_FEET_Y = 480
+
+let renderSpineSlots = () => {}
+export function setRenderSpineSlots(fn) {
+  renderSpineSlots = fn
+}
 
 // ── Per-frame delta tracker — updated in renderFrame() ───────────
 let _lastRenderT = 0
@@ -175,8 +180,39 @@ function makeStoreTex(storeId, imgs={}) {
   return new Uint8Array(imgData.data.buffer)
 }
 
+// ── Hedge + water textures (garden courtyards, pool, fountains) ──
+const TEX_PLANTER = (() => {
+  const b = new Uint8Array(W * W * 4)
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    const i  = (y * W + x) * 4
+    const n1 = NOISE[((y*512 + x*3) & 0x3FFFF)] / 255
+    const n2 = NOISE[(((y*7)*512 + x) & 0x3FFFF)] / 255
+    const leaf = .55 + .45 * Math.sin(x*.9 + n1*6.3) * Math.sin(y*.8 + n2*6.3)
+    b[i]   = Math.min(255, Math.round(18 + 30*leaf))
+    b[i+1] = Math.min(255, Math.round(70 + 90*leaf))
+    b[i+2] = Math.min(255, Math.round(22 + 34*leaf))
+    b[i+3] = 255
+  }
+  return b
+})()
+
+const TEX_WATER = (() => {
+  const b = new Uint8Array(W * W * 4)
+  for (let y = 0; y < W; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4
+    const ripple = Math.sin(y*.55 + Math.sin(x*.3)*2) * .5 + .5
+    const n = NOISE[((y*512 + x) & 0x3FFFF)] / 255 * .25
+    const v = .55 + .45*ripple + n
+    b[i]   = Math.min(255, Math.round(20  + 50*v))
+    b[i+1] = Math.min(255, Math.round(90  + 90*v))
+    b[i+2] = Math.min(255, Math.round(170 + 70*v))
+    b[i+3] = 255
+  }
+  return b
+})()
+
 // Build texture map (initially without images — procedural fallback)
-const TEXTURES = { [CELL.WALL]: TEX_WALL }
+const TEXTURES = { [CELL.WALL]: TEX_WALL, [CELL.PLANTER]: TEX_PLANTER, [CELL.WATER]: TEX_WATER }
 Object.entries(CELL_STORE).forEach(([id, sid]) => { TEXTURES[id] = makeStoreTex(sid) })
 
 // ── Async asset loader ────────────────────────────────────────
@@ -205,7 +241,7 @@ const STORE_RGB = {}
 Object.entries(_allStores).forEach(([id, s]) => { STORE_RGB[id] = hexRGB(s.hex) })
 
 // Wall = 64×64, store = 128×128 — look up per cell type
-function texSz(wallType) { return wallType === CELL.WALL ? WALL_TEX_SIZE : STORE_TEX_SIZE }
+function texSz(wallType) { return wallType <= CELL.WATER ? WALL_TEX_SIZE : STORE_TEX_SIZE }
 
 // ── Canvas setup ──────────────────────────────────────────────
 let canvas, ctx, offCanvas, offCtx, RW, RH, imgData, pixels, zBuf
@@ -267,7 +303,7 @@ export function renderThirdPerson(posX, posY, dirX, dirY, plX, plY, t, remoteCac
   // Advance the self avatar BEFORE renderFrame so the single shared-canvas
   // render (renderSpineSlots inside renderFrame) includes this frame's pose.
   // First person never reaches here — self pose intentionally frozen (spec R2 HIGH-1).
-  if (selfTexture instanceof SpineAvatarInstance || selfTexture instanceof GenericSpineAvatarInstance) {
+  if (selfTexture?.isSpine || selfTexture?.isGenericSpine) {
     selfTexture.update(t - (selfTexture._lastT ?? t))
     selfTexture._lastT = t
   }
@@ -322,16 +358,16 @@ function _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, play
 
   // Scale sprite height by distance — same formula as billboard pass
   const spriteH = Math.abs(Math.round(H * WALL_HEIGHT * AVATAR_SPRITE_SCALE / ty))
-  const spriteW = (selfTexture instanceof SpineAvatarInstance)
+  const spriteW = selfTexture?.isSpine
     ? Math.round(spriteH * SPINE_CANVAS_W / SPINE_CANVAS_H)  // 800/600 aspect ratio
     : Math.round(spriteH * 0.75)
 
   // Vertical position: feet anchored to the raycaster floor projection line
   // at this depth — same math as _drawSpineOverlay. feetFrac maps the texture's
   // ground-contact row to the floor line (1.0 = bottom edge for static textures).
-  const feetFrac = (selfTexture instanceof SpineAvatarInstance)
+  const feetFrac = selfTexture?.isSpine
     ? ((selfTexture._feetY ?? SPINE_CANVAS_FEET_Y) + 1) / SPINE_CANVAS_H
-    : (selfTexture instanceof GenericSpineAvatarInstance)
+    : selfTexture?.isGenericSpine
     ? (selfTexture._feetY !== undefined ? (selfTexture._feetY + 1) / selfTexture._canvas.height : 0.97)
     : selfTexture ? _staticFeetFrac(selfTexture) : 1.0
   const floorY = Math.round(H / 2 + H * WALL_HEIGHT / (2 * ty))
@@ -345,7 +381,7 @@ function _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, play
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
 
-  if (selfTexture instanceof SpineAvatarInstance || selfTexture instanceof GenericSpineAvatarInstance) {
+  if (selfTexture?.isSpine || selfTexture?.isGenericSpine) {
     // Animation advanced in renderThirdPerson; slot rendered by renderSpineSlots().
     if (selfTexture.isReady && selfTexture._canvas) {
       const srcR = selfTexture._srcRect ?? { x: 0, y: 0, w: selfTexture._canvas.width, h: selfTexture._canvas.height }
@@ -389,10 +425,24 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
         if (chk===0) { px[idx]=Math.round(62*ff);  px[idx+1]=Math.round(6*ff);  px[idx+2]=Math.round(108*ff) }
         else         { px[idx]=Math.round(8*ff);   px[idx+1]=Math.round(82*ff); px[idx+2]=Math.round(26*ff) }
       } else {
-        const fx2=fx-tx, fy2=fy-ty
-        const grout=(fx2<.045||fx2>.955||fy2<.045||fy2>.955)?.52:1
-        const v=Math.round((78+fog*148)*grout), vb=Math.round((82+fog*155)*grout)
-        px[idx]=v; px[idx+1]=v; px[idx+2]=vb
+        // Open-air courtyards (SKY_RECTS): sky instead of ceiling tiles.
+        // fog≈1 overhead → deep blue; fog→0 at the horizon → pale.
+        let sky = false
+        for (let r = 0; r < SKY_RECTS.length; r++) {
+          const R = SKY_RECTS[r]
+          if (tx >= R.x0 && tx <= R.x1 && ty >= R.y0 && ty <= R.y1) { sky = true; break }
+        }
+        if (sky) {
+          const open = 1 - fog
+          px[idx]   = Math.round(40  + open*150)
+          px[idx+1] = Math.round(90  + open*130)
+          px[idx+2] = Math.round(170 + open*80)
+        } else {
+          const fx2=fx-tx, fy2=fy-ty
+          const grout=(fx2<.045||fx2>.955||fy2<.045||fy2>.955)?.52:1
+          const v=Math.round((78+fog*148)*grout), vb=Math.round((82+fog*155)*grout)
+          px[idx]=v; px[idx+1]=v; px[idx+2]=vb
+        }
       }
       px[idx+3]=255; fx+=sfx; fy+=sfy
     }
@@ -418,7 +468,11 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
     if(pd<=0) continue
 
     const sliceH = Math.round(H2*WALL_HEIGHT/pd)
-    const dTop   = Math.max(0, ((H2-sliceH)/2)|0)
+    // TALL_CELLS (atrium walls): 3× height — bottom stays pinned to the floor
+    // line, the extra height extends upward. tall===1 reproduces the old math.
+    const tall       = TALL_CELLS.has(mapX + ',' + mapY) ? 3 : 1
+    const wallTopRaw = (H2+sliceH)/2 - sliceH*tall
+    const dTop   = Math.max(0, wallTopRaw|0)
     const dBot   = Math.min(H2-1, ((H2+sliceH)/2)|0)
 
     let wallX = side===0?(posY+pd*rayDY):(posX+pd*rayDX); wallX-=Math.floor(wallX)
@@ -447,7 +501,7 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
     const tex    = TEXTURES[wallType]||TEX_WALL
 
     const step2  = tSz/sliceH
-    let texPos   = (dTop-(H2-sliceH)/2)*step2
+    let texPos   = (dTop - wallTopRaw)*step2   // tall walls tile the texture vertically
 
     const sRGB   = storeId ? STORE_RGB[storeId] : null
 
@@ -464,7 +518,8 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
     }
 
     for (let y = dTop; y <= dBot; y++, texPos+=step2) {
-      const texY = Math.min(tSz-1, texPos|0)
+      let texY = texPos|0
+      if (texY >= tSz) texY = tall > 1 ? texY % tSz : tSz-1
       const ti   = (texY*tSz+texX)*4
       let r=tex[ti], g=tex[ti+1], b=tex[ti+2]
 
@@ -515,7 +570,7 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
   const spineSprites = []
   for (const sp of Object.values(remoteCache)) {
     if (now2 - sp.lastSeen > 6000) continue
-    if (sp.texture instanceof SpineAvatarInstance || sp.texture instanceof GenericSpineAvatarInstance) {
+    if (sp.texture?.isSpine || sp.texture?.isGenericSpine) {
       sp.texture.update(dt)
       spineSprites.push(sp)
     }
@@ -579,7 +634,7 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, self
     let texSize    = AVATAR_TEX_SIZE  // 64 for static, 128 for Spine
     let hasTexture = false
 
-    if (sp.texture instanceof SpineAvatarInstance || sp.texture instanceof GenericSpineAvatarInstance) {
+    if (sp.texture?.isSpine || sp.texture?.isGenericSpine) {
       // High-quality drawImage overlay handled in _drawSpineOverlay after pixel flush.
       // Skip pixel-sampling entirely; procedural silhouette omitted while loading.
       continue
@@ -658,7 +713,7 @@ function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp) {
   // Spine canvas is 800×600 (README values) → aspect ratio 800/600 = 4/3
   const screenX  = Math.round((W / 2) * (1 + tx / ty))
   const spriteH  = Math.abs(Math.round(H * WALL_HEIGHT * AVATAR_SPRITE_SCALE / ty))
-  const spriteW  = sp.texture instanceof SpineAvatarInstance
+  const spriteW  = sp.texture?.isSpine
     ? Math.round(spriteH * SPINE_CANVAS_W / SPINE_CANVAS_H)  // 800/600 aspect ratio
     : spriteH  // GenericSpineAvatarInstance uses square canvas
 
@@ -672,7 +727,7 @@ function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp) {
   // Prefer the per-instance detected feet row (_detectFeetY scan at init) —
   // the idle pose floats the body above the Spine origin, so the constant
   // SPINE_CANVAS_FEET_Y (origin row) over-estimates where the art touches.
-  const feetFrac = sp.texture instanceof SpineAvatarInstance
+  const feetFrac = sp.texture?.isSpine
     ? ((sp.texture._feetY ?? SPINE_CANVAS_FEET_Y) + 1) / SPINE_CANVAS_H
     : sp.texture._feetY !== undefined
     ? (sp.texture._feetY + 1) / sp.texture._canvas.height

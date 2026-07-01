@@ -19,8 +19,7 @@
 
 import { IDB_DB_NAME, IDB_DB_VERSION, IDB_STORE_NAME, AVATAR_TEX_SIZE, AVATAR_CACHE_TTL } from './config.js'
 import { loadNFTImage, loadImageUrl, isAxieAvatarUrl, axieImageCandidates } from './nftService.js'
-import { SpineAvatarInstance, AXIE_CONTRACT } from './spineAvatar.js'
-import { GenericSpineAvatarInstance } from './genericSpineAvatar.js'
+const AXIE_CONTRACT = '0x32950db2a7164ae833121501c797d79e7b79d74c'
 
 // ── Sky Mavis GraphQL — fetch Axie genes by tokenId ─────────────
 // Returns the genes hex string, or null if unavailable.
@@ -405,9 +404,10 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null,
       // ── Spine path: try Ghost Canvas Render if API key + tokenId available ──
       const tokenId = nft?.tokenId ?? hint?.tokenId ?? null
       // API key is server-side only — no client check needed; edge function handles auth.
-      if (tokenId) {
+      if (tokenId && window.spineStackLoaded) {
         const genes = await getAxieGenes(tokenId)
         if (genes) {
+          const { SpineAvatarInstance } = await import('./spineAvatar.js')
           const inst = new SpineAvatarInstance({ isSelf })
           await inst.init(genes)
           if (inst.isReady) {
@@ -423,7 +423,8 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null,
 
       // ── Classic pre-baked assets (assets.axieinfinity.com, no auth needed) ──
       // Covers: genes unavailable, API key absent, or mixer init failure.
-      if (tokenId) {
+      if (tokenId && window.spineStackLoaded) {
+        const { SpineAvatarInstance } = await import('./spineAvatar.js')
         const classicInst = new SpineAvatarInstance({ isSelf })
         await classicInst.initFromClassicId(tokenId)
         if (classicInst.isReady) return cb(classicInst)
@@ -433,6 +434,7 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null,
       // ── 6-bone rig fallback (Spine unavailable or classic assets 404) ──
       const axieImg = await loadNFTImage(storedUrl, hint)
       if (axieImg) {
+        const { GenericSpineAvatarInstance } = await import('./genericSpineAvatar.js')
         const rigInst = new GenericSpineAvatarInstance()
         await rigInst.init(axieImg)
         if (rigInst.isReady) return cb(rigInst)
@@ -449,6 +451,7 @@ export async function loadPlayerAvatar(address, cb, imageUrl = null, nft = null,
     const img = await loadNFTImage(storedUrl, hint)
     if (!img) return cb(makeProceduralAvatar(address))
 
+    const { GenericSpineAvatarInstance } = await import('./genericSpineAvatar.js')
     const inst = new GenericSpineAvatarInstance()
     await inst.init(img)
     if (inst.isReady) return cb(inst)

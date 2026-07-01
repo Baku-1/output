@@ -8,15 +8,15 @@ import { initMultiplayer, broadcastPosition, interpolatePlayers, remoteCache, on
 import { initDM, onInboxMessage } from './dmService.js'
 import { initDMPanel, openDMPanel, closeDMPanel, isDMPanelOpen, getOpenPeerAddr } from './dmPanel.js'
 import { initGroupChat, toggleGroupChat, closeGroupChat, isGroupChatOpen } from './groupChat.js'
-import { initRenderer, renderFrame, renderThirdPerson, renderBirdsEye, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets } from './renderer.js'
+import { initRenderer, renderFrame, renderThirdPerson, renderBirdsEye, drawMinimap, hexRGB, resolvedNPCs, initStoreAssets, setRenderSpineSlots } from './renderer.js'
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
-import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange } from './wallet.js'
-import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, TUTORIAL_STORES, ZONE_SPLASH, getZone } from './map.js'
+import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange, getAddress } from './wallet.js'
+import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, TUTORIAL_STORES, ZONE_SPLASH, getZone, ESCALATORS, SPAWN } from './map.js'
 import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE, GROQ_API_KEY, GROQ_MODEL } from './config.js'
 import { initTouch, isTouchDevice, touchMoveX, touchMoveY, consumeRotation, setInteractCallback, setInteractVisible } from './touch.js'
 
 // ── Camera state ──────────────────────────────────────────────
-let posX=21.5, posY=53.5, dirX=0, dirY=-1
+let posX=SPAWN.x, posY=SPAWN.y, dirX=0, dirY=-1   // spawn: MAIN LOBBY, facing the promenade
 let plX=FOV_PLANE, plY=0
 
 // ── Camera mode ───────────────────────────────────────────────
@@ -113,57 +113,79 @@ document.getElementById('enter-btn').addEventListener('click', async () => {
   _entered = true
   const splash = document.getElementById('splash')
   splash.classList.add('gone')
-  setTimeout(async () => {
-    splash.style.display = 'none'
 
-    // Init IndexedDB
-    await avatarCache.init().catch(console.warn)
+  // Start Spine/PIXI stack load immediately
+  const spineLoadPromise = (async () => {
+    const { renderAll } = await import('./spineAvatarManager.js')
+    setRenderSpineSlots(renderAll)
+    window.spineStackLoaded = true
+  })()
 
-    // Start multiplayer with wallet address as player ID
-    const { getAddress } = await import('./wallet.js')
-    const address = getAddress()
-    if (address) {
-      initMultiplayer(address)
-      // Wire DM service — must come after initMultiplayer so ablyClient exists
-      initDM(address, getAblyClient())
-      // Wire group chat — getAblyChannel() is safe here: initMultiplayer(address)
-      // ran above and sets ablyChannel synchronously before returning.
-      initGroupChat({
-        posGetter: () => ({ x: posX, y: posY }),
-        myId:      address,
-        channel:   getAblyChannel()
-        // channelOverride omitted here — only passed for guild hall rooms
-      })
-      onInboxMessage(_showTradeNotif)   // wire inbox toast
-      // Load own avatar for 3rd-person selfTexture.
-      // If the user picked during the picker phase the URL is already in
-      // sessionStorage — bypass IDB so we always show what they actually picked.
-      // If they skipped the picker, fall back to IDB cache for fast startup.
-      const _selfUrl = () => sessionStorage.getItem(`avatar-url:${address}`) || null
-      // isSelf=true → reserved slot 0 on the shared Spine context (spec R2 MEDIUM-3)
-      loadPlayerAvatar(address, tex => { selfTexture = tex }, _selfUrl(), null, true)
-      // On subsequent avatar changes (rare — avatar change while already in world):
-      window.addEventListener('avatar-changed', (e) => {
-        if (e.detail.address !== address) return
-        selfTexture?.destroy?.()   // release old slot before re-acquiring
-        loadPlayerAvatar(address, tex => { selfTexture = tex }, _selfUrl(), null, true)
-      })
-    }
+  // 10 second timeout promise
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Spine/PIXI stack load timed out after 10s')), 10000)
+  )
 
-    // Wire store-entry events from other players
-    onStoreEntry((playerId, storeId) => {
-      const store = STORES[storeId]
-      if (store) showEvent(`#${playerId.slice(0,6).toUpperCase()} entered ${store.name}`)
+  // Wait for the fade-out transition (1s) and Spine loading (up to 10s)
+  const transitionPromise = new Promise(resolve => setTimeout(resolve, 1000))
+
+  try {
+    await Promise.race([spineLoadPromise, timeoutPromise])
+  } catch (err) {
+    console.warn('[MAIN] Spine/PIXI stack load failed or timed out. Falling back to static/procedural avatars.', err)
+  }
+
+  // Ensure transition has completed (1s visual minimum)
+  await transitionPromise
+
+  splash.style.display = 'none'
+
+  // Init IndexedDB
+  await avatarCache.init().catch(console.warn)
+
+  // Start multiplayer with wallet address as player ID
+  const address = getAddress()
+  if (address) {
+    initMultiplayer(address)
+    // Wire DM service — must come after initMultiplayer so ablyClient exists
+    initDM(address, getAblyClient())
+    // Wire group chat — getAblyChannel() is safe here: initMultiplayer(address)
+    // ran above and sets ablyChannel synchronously before returning.
+    initGroupChat({
+      posGetter: () => ({ x: posX, y: posY }),
+      myId:      address,
+      channel:   getAblyChannel()
+      // channelOverride omitted here — only passed for guild hall rooms
     })
+    onInboxMessage(_showTradeNotif)   // wire inbox toast
+    // Load own avatar for 3rd-person selfTexture.
+    // If the user picked during the picker phase the URL is already in
+    // sessionStorage — bypass IDB so we always show what they actually picked.
+    // If they skipped the picker, fall back to IDB cache for fast startup.
+    const _selfUrl = () => sessionStorage.getItem(`avatar-url:${address}`) || null
+    // isSelf=true → reserved slot 0 on the shared Spine context (spec R2 MEDIUM-3)
+    loadPlayerAvatar(address, tex => { selfTexture = tex }, _selfUrl(), null, true)
+    // On subsequent avatar changes (rare — avatar change while already in world):
+    window.addEventListener('avatar-changed', (e) => {
+      if (e.detail.address !== address) return
+      selfTexture?.destroy?.()   // release old slot before re-acquiring
+      loadPlayerAvatar(address, tex => { selfTexture = tex }, _selfUrl(), null, true)
+    })
+  }
 
-    // Build HTML overlay elements for store key art
-    initStoreOverlays()
-    // Load textures (logo baked into raycaster texture)
-    initStoreAssets().catch(console.warn)
+  // Wire store-entry events from other players
+  onStoreEntry((playerId, storeId) => {
+    const store = STORES[storeId]
+    if (store) showEvent(`#${playerId.slice(0,6).toUpperCase()} entered ${store.name}`)
+  })
 
-    running = true
-    requestAnimationFrame(loop)
-  }, 1000)
+  // Build HTML overlay elements for store key art
+  initStoreOverlays()
+  // Load textures (logo baked into raycaster texture)
+  initStoreAssets().catch(console.warn)
+
+  running = true
+  requestAnimationFrame(loop)
 })
 
 // ═══════════════════════════════════════════════════════════════
@@ -245,6 +267,16 @@ function update(dt) {
     const spd=MOVE_SPEED*dt, nx=posX+(mx/ml)*spd, ny=posY+(my/ml)*spd
     if (walkable(nx, posY)) posX = nx
     if (walkable(posX, ny)) posY = ny
+
+    // Escalators — walking onto a pad teleports to the paired exit on the
+    // other level (exits sit beside destination pads, so no re-trigger loop).
+    for (const e of ESCALATORS) {
+      if (posX >= e.pad.x0 && posX < e.pad.x1 + 1 &&
+          posY >= e.pad.y0 && posY < e.pad.y1 + 1) {
+        posX = e.exit.x; posY = e.exit.y
+        break
+      }
+    }
   }
 
   // Tutorial splash — dismiss on movement input
@@ -332,16 +364,18 @@ function update(dt) {
     }
   }
 
-  // Tutorial splash — one-shot trigger entering the south connecting hall
-  if (!_tutorialSplashShown
-      && posX >= 30.0 && posX <= 35.5
-      && posY >= 73.5 && posY <= 76.5) {
+  // Zone HUD
+  const zone = getZone(posX, posY)
+
+  // Tutorial splash — one-shot trigger on entering the TUTORIAL room
+  // (tutorial facades line its walls). Spawn sits in MAIN_LOBBY, a
+  // different zone, so it never collides with the one-time welcome
+  // splash on frame 1.
+  if (!_tutorialSplashShown && zone.id === 'TUTORIAL') {
     _tutorialSplashShown = true
     _showTutorialSplash()
   }
 
-  // Zone HUD
-  const zone = getZone(posX, posY)
   document.getElementById('hz').textContent       = zone.id
   document.getElementById('zone-lbl').textContent = zone.label !== zone.id ? zone.label : ''
 
@@ -592,7 +626,7 @@ document.getElementById('spx').addEventListener('click', closeStore)
 document.getElementById('sp').addEventListener('click', function(e) { if (e.target===this) closeStore() })
 
 // ═══════════════════════════════════════════════════════════════
-// TUTORIAL WING — panel + splash
+// TUTORIAL storefronts (Grand Lobby walls) — panel + splash
 // ═══════════════════════════════════════════════════════════════
 function openTutorialPanel(id) {
   const store = TUTORIAL_STORES[id]; if (!store) return
@@ -625,7 +659,7 @@ document.getElementById('tutorial-panel').addEventListener('click', function(e) 
 })
 document.getElementById('tp-close').addEventListener('click', closeTutorialPanel)
 
-// ── Splash popup — one-shot "TUTORIALS" hint at the connecting hall ──
+// ── Splash popup — one-shot "TUTORIALS" hint in the Grand Lobby south half ──
 let _tutorialSplashShown  = false
 let _tutorialSplashEl     = null
 let _tutorialSplashTimer  = null
