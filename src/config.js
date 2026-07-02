@@ -31,7 +31,8 @@ export const MORALIS_API_KEY  = import.meta.env.VITE_MORALIS_API_KEY
 export const MORALIS_CHAIN    = '0x7e4'   // Ronin mainnet chain ID in hex
 
 // ── Groq (NPC chat — fast llama inference) ────────────────────
-export const GROQ_API_KEY     = import.meta.env.VITE_GROQ_API_KEY || ''
+// API key is server-side only (vite dev proxy / api/npc-chat.js) — never
+// exported here, so it can't be baked into the client bundle.
 export const GROQ_MODEL       = import.meta.env.VITE_GROQ_MODEL   || 'llama-3.1-8b-instant'
 
 // ── Renderer ──────────────────────────────────────────────────

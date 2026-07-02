@@ -270,6 +270,16 @@ function _renderTradeCard(msg, isMine) {
   _msgList.appendChild(card)
 }
 
+// Replace a trade card's contents with a final status line.
+// Fix #8 discipline: textContent, never innerHTML with dynamic data.
+function _setCardDone(cardEl, text, isErr = false) {
+  cardEl.replaceChildren()
+  const div = document.createElement('div')
+  div.className = 'tc-done' + (isErr ? ' tc-err' : '')
+  div.textContent = text
+  cardEl.appendChild(div)
+}
+
 // Accept trade
 async function _handleAccept(msg, cardEl) {
   const myAddr = getAddress()?.toLowerCase()
@@ -302,7 +312,7 @@ async function _handleAccept(msg, cardEl) {
     const signer     = await provider.getSigner()
     const txResponse = await _trade.fulfillTradeOrder(order, myAddr, signer)
 
-    cardEl.innerHTML = `<div class="tc-done">✅ Trade submitted! Tx: ${txResponse.hash.slice(0,10)}…</div>`
+    _setCardDone(cardEl, `✅ Trade submitted! Tx: ${txResponse.hash.slice(0,10)}…`)
 
     await sendMessage(msg.from, { type: 'trade_accepted', content: `Trade accepted. Tx: ${txResponse.hash}` })
 
@@ -321,9 +331,9 @@ async function _handleAccept(msg, cardEl) {
 async function _handleDecline(msg, cardEl) {
   try {
     await sendMessage(msg.from, { type: 'trade_declined', content: 'Trade declined.' })
-    cardEl.innerHTML = '<div class="tc-done">Offer declined.</div>'
+    _setCardDone(cardEl, 'Offer declined.')
   } catch (err) {
     console.error('[dmPanel] decline failed:', err)
-    cardEl.innerHTML = '<div class="tc-done tc-err">Decline failed.</div>'
+    _setCardDone(cardEl, 'Decline failed.', true)
   }
 }

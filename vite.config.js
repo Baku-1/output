@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   // into the client bundle (we never reference it via import.meta.env in src/).
   const env = loadEnv(mode, process.cwd(), '')
   const skyMavisKey = env.SKY_MAVIS_API_KEY || env.VITE_SKY_MAVIS_API_KEY || ''
+  const groqKey     = env.GROQ_API_KEY     || env.VITE_GROQ_API_KEY     || ''
 
   return {
     plugins: [
@@ -38,6 +39,14 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: () => '/graphql/axie-marketplace',
           headers: skyMavisKey ? { 'x-api-key': skyMavisKey } : {},
+        },
+        // Groq NPC chat — key attached HERE (dev-server side, from .env) so
+        // it never enters the client bundle. Mirrors the hosted api/npc-chat.js.
+        '/api/npc-chat': {
+          target: 'https://api.groq.com',
+          changeOrigin: true,
+          rewrite: () => '/openai/v1/chat/completions',
+          headers: groqKey ? { 'Authorization': `Bearer ${groqKey}` } : {},
         },
         // Classic Axie spine assets (atlas/json/png) for initFromClassicId.
         // assets.axieinfinity.com 403s requests carrying a browser Origin —

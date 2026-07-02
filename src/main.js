@@ -12,7 +12,7 @@ import { initRenderer, renderFrame, renderThirdPerson, renderBirdsEye, drawMinim
 import { initStoreOverlays, updateStoreOverlays } from './store-overlays.js'
 import { connectRoninExtension, connectRoninMobile, connectWaypoint, shortAddress, onAccountChange, getAddress } from './wallet.js'
 import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, TUTORIAL_STORES, ZONE_SPLASH, getZone, ESCALATORS, SPAWN } from './map.js'
-import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE, GROQ_API_KEY, GROQ_MODEL } from './config.js'
+import { MOVE_SPEED, TURN_SPEED, MOUSE_SENSITIVITY, FOV_PLANE, GROQ_MODEL } from './config.js'
 import { initTouch, isTouchDevice, touchMoveX, touchMoveY, consumeRotation, setInteractCallback, setInteractVisible } from './touch.js'
 
 // ── Camera state ──────────────────────────────────────────────
@@ -475,12 +475,11 @@ async function sendNPCMessage() {
   npcLoad = true
   const ld = addNPCMsg('…', 'ld')
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    // Proxied: vite dev proxy in dev, api/npc-chat.js on Vercel in prod.
+    // The Groq key lives server-side only — never in the client bundle.
+    const res = await fetch('/api/npc-chat', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: GROQ_MODEL,
         max_tokens: 200,
