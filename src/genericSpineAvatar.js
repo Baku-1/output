@@ -21,6 +21,9 @@
 //   update(dt)
 // ═══════════════════════════════════════════════════════════════
 
+import { peelBorderConnected, borderBgColors } from './imageBgRemoval.js'
+import { BG_TOLERANCE } from './config.js'
+
 export const GENERIC_CANVAS_SIZE = 128
 
 export class GenericSpineAvatarInstance {
@@ -220,7 +223,7 @@ function _isPortraitImage(canvas, S) {
 
 /**
  * BFS-strip the background from imgEl and return a cleaned canvas.
- * Mirrors the logic in avatarCache._removeBackground / _peelBorderConnected.
+ * Uses the shared imageBgRemoval.js peel (same module as avatarCache).
  */
 function _cleanToCanvas(imgEl, S) {
   const oc  = document.createElement('canvas')
@@ -247,19 +250,19 @@ function _cleanToCanvas(imgEl, S) {
 
   if (hasMeaningfulAlpha) {
     // Already has transparency — just peel solid border colours
-    _peel(data, S, (r, g, b) => r < 55 && g < 55 && b < 55, 10)
-    _peel(data, S, (r, g, b) => r > 215 && g > 215 && b > 215, 10)
+    peelBorderConnected(data, S, (r, g, b) => r < 55 && g < 55 && b < 55, 10)
+    peelBorderConnected(data, S, (r, g, b) => r > 215 && g > 215 && b > 215, 10)
   } else {
     // Detect background from border histogram, BFS-flood with depth cap
-    const bgColors = _borderBgColors(data, S, 2)
-    const TOL = 40, DEPTH = 10
+    const bgColors = borderBgColors(data, S, 2)
+    const TOL = BG_TOLERANCE.genericSpine, DEPTH = 10
     for (const [bgR, bgG, bgB] of bgColors) {
-      _peel(data, S, (r, g, b) =>
+      peelBorderConnected(data, S, (r, g, b) =>
         Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB) <= TOL, DEPTH)
       if (bgR > 215 && bgG > 215 && bgB > 215)
-        _peel(data, S, (r, g, b) => r > 215 && g > 215 && b > 215, DEPTH)
+        peelBorderConnected(data, S, (r, g, b) => r > 215 && g > 215 && b > 215, DEPTH)
       if (bgR < 55 && bgG < 55 && bgB < 55)
-        _peel(data, S, (r, g, b) => r < 55 && g < 55 && b < 55, DEPTH)
+        peelBorderConnected(data, S, (r, g, b) => r < 55 && g < 55 && b < 55, DEPTH)
     }
   }
 
@@ -267,64 +270,8 @@ function _cleanToCanvas(imgEl, S) {
   return oc
 }
 
-function _borderBgColors(data, S, count) {
-  const hist = new Uint16Array(32 * 32 * 32)
-  const push = (x, y) => {
-    const i = (y * S + x) * 4
-    if (data[i + 3] <= 20) return
-    const r = data[i] >> 3, g = data[i + 1] >> 3, b = data[i + 2] >> 3
-    hist[(r << 10) | (g << 5) | b]++
-  }
-  for (let x = 0; x < S; x++) { push(x, 0); push(x, S - 1) }
-  for (let y = 1; y < S - 1; y++) { push(0, y); push(S - 1, y) }
-
-  const out = [], used = new Uint8Array(hist.length)
-  for (let n = 0; n < count; n++) {
-    let best = -1, bestN = 0
-    for (let i = 0; i < hist.length; i++) {
-      if (!used[i] && hist[i] > bestN) { bestN = hist[i]; best = i }
-    }
-    if (bestN === 0) break
-    used[best] = 1
-    out.push([((best >> 10) & 31) << 3, ((best >> 5) & 31) << 3, (best & 31) << 3])
-  }
-  return out
-}
-
-function _peel(data, S, predicate, maxDepth) {
-  const visited = new Uint8Array(S * S)
-  const depth   = new Uint8Array(S * S)
-  depth.fill(255)
-  const qx = new Int16Array(S * S)
-  const qy = new Int16Array(S * S)
-  let head = 0, tail = 0
-
-  const enq = (x, y, d) => {
-    if (x < 0 || x >= S || y < 0 || y >= S) return
-    if (d > maxDepth || visited[y * S + x]) return
-    visited[y * S + x] = 1
-    depth[y * S + x]   = d
-    qx[tail] = x; qy[tail] = y; tail++
-  }
-
-  for (let x = 0; x < S; x++) { enq(x, 0, 0); enq(x, S - 1, 0) }
-  for (let y = 1; y < S - 1; y++) { enq(0, y, 0); enq(S - 1, y, 0) }
-
-  while (head < tail) {
-    const x = qx[head], y = qy[head++]
-    const d = depth[y * S + x]
-    if (d > maxDepth) continue
-    const i = (y * S + x) * 4
-    if (data[i + 3] === 0 || predicate(data[i], data[i + 1], data[i + 2])) {
-      data[i + 3] = 0
-      const nd = d + 1
-      if (nd <= maxDepth) {
-        enq(x + 1, y, nd); enq(x - 1, y, nd)
-        enq(x, y + 1, nd); enq(x, y - 1, nd)
-      }
-    }
-  }
-}
+// _borderBgColors and _peel moved to imageBgRemoval.js (Phase 1.2) —
+// shared with avatarCache.js.
 
 /**
  * Cut a rectangular region out of srcCanvas and return a new canvas.

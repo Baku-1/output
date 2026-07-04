@@ -38,7 +38,9 @@ export const SPINE_CANVAS_SIZE = SPINE_CANVAS_W  // kept for any existing import
 // Slot-relative Y where the Spine origin (ground contact) is placed.
 // Fallback for feetFrac until the post-render alpha scan sets _feetY:
 //   feetFrac = ((_feetY ?? SPINE_CANVAS_FEET_Y) + 1) / SPINE_CANVAS_H
-export const SPINE_CANVAS_FEET_Y = 480
+// Moved to config.js (Phase 1.4) — shared with renderer.js.
+import { SPINE_CANVAS_FEET_Y } from './config.js'
+export { SPINE_CANVAS_FEET_Y }
 
 // Spine display scale — 0.6 fills roughly the bottom 2/3 of the 800×600 slot,
 // making the character large enough to read at raycaster billboard distances.

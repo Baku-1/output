@@ -17,8 +17,9 @@
 //   getAxieGenes(tokenId)               → Promise<string|null>
 // ═══════════════════════════════════════════════════════════════
 
-import { IDB_DB_NAME, IDB_DB_VERSION, IDB_STORE_NAME, AVATAR_TEX_SIZE, AVATAR_CACHE_TTL } from './config.js'
+import { IDB_DB_NAME, IDB_DB_VERSION, IDB_STORE_NAME, AVATAR_TEX_SIZE, AVATAR_CACHE_TTL, BG_TOLERANCE } from './config.js'
 import { loadNFTImage, loadImageUrl, isAxieAvatarUrl, axieImageCandidates } from './nftService.js'
+import { peelBorderConnected, borderBgColors } from './imageBgRemoval.js'
 const AXIE_CONTRACT = '0x32950db2a7164ae833121501c797d79e7b79d74c'
 
 // ── Sky Mavis GraphQL — fetch Axie genes by tokenId ─────────────
@@ -158,8 +159,8 @@ function _bake(imgEl, isAxie = false) {
   if (isAxie) {
     _removeAxieBackground(data, S)
   } else if (_hasMeaningfulAlpha(data)) {
-    _peelBorderConnected(data, S, _isNearBlack)
-    _peelBorderConnected(data, S, _isNearWhite)
+    peelBorderConnected(data, S, _isNearBlack)
+    peelBorderConnected(data, S, _isNearWhite)
   } else {
     _removeBackground(data, S, false)
   }
@@ -202,16 +203,16 @@ function _isNearWhite(r, g, b) {
 // Shallow border peel only (never floods through dark mask/face parts).
 // Aggressive dark-luma peeling was eating Mask-trait faces.
 function _removeAxieBackground(data, S) {
-  const bgColors = _borderBgColors(data, S, 1)
-  const TOL = 50
+  const bgColors = borderBgColors(data, S, 1)
+  const TOL = BG_TOLERANCE.axie
   const MAX_DEPTH = 14
 
   for (const [bgR, bgG, bgB] of bgColors) {
     const colorMatch = (r, g, b) =>
       Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB) <= TOL
-    _peelBorderConnected(data, S, colorMatch, MAX_DEPTH)
+    peelBorderConnected(data, S, colorMatch, MAX_DEPTH)
   }
-  _peelBorderConnected(data, S, (r, g, b) => r < 20 && g < 20 && b < 20, 10)
+  peelBorderConnected(data, S, (r, g, b) => r < 20 && g < 20 && b < 20, 10)
 }
 
 // ── Background removal — BFS flood fill from corners ─────────
@@ -221,59 +222,30 @@ function _removeAxieBackground(data, S) {
 // MAX_BG_DEPTH: limits BFS to a shallow border strip so it can't
 // tunnel through a connected path all the way into the character.
 function _removeBackground(data, S, isAxie = false) {
-  const TOL          = 55   // raised from 40: catches tan/beige/off-white backgrounds
+  const TOL          = BG_TOLERANCE.generic   // per-collection map in config.js
   const MAX_BG_DEPTH = 10   // pixels inward the BFS may travel
-  const bgColors     = _borderBgColors(data, S, 3)  // sample top 3 border colors
+  const bgColors     = borderBgColors(data, S, 3)  // sample top 3 border colors
 
   for (const [bgR, bgG, bgB] of bgColors) {
     const colorMatch = (r, g, b) =>
       Math.abs(r - bgR) + Math.abs(g - bgG) + Math.abs(b - bgB) <= TOL
-    _peelBorderConnected(data, S, colorMatch, MAX_BG_DEPTH)
+    peelBorderConnected(data, S, colorMatch, MAX_BG_DEPTH)
 
     // Only peel near-white pixels if the detected background IS near-white,
     // and only near-black pixels if the background IS near-black.
     // Previously these ran unconditionally, eating white fur / dark outlines
     // on characters whose edge pixels happened to match.
     if (_isNearWhite(bgR, bgG, bgB)) {
-      _peelBorderConnected(data, S, _isNearWhite, MAX_BG_DEPTH)
+      peelBorderConnected(data, S, _isNearWhite, MAX_BG_DEPTH)
     }
     if (_isNearBlack(bgR, bgG, bgB)) {
-      _peelBorderConnected(data, S, _isNearBlack, MAX_BG_DEPTH)
+      peelBorderConnected(data, S, _isNearBlack, MAX_BG_DEPTH)
     }
   }
 }
 
-function _borderBgColors(data, S, count) {
-  const hist = new Uint16Array(32 * 32 * 32)
-  const push = (x, y) => {
-    const i = (y * S + x) * 4
-    if (data[i + 3] <= 20) return
-    const r = data[i] >> 3, g = data[i + 1] >> 3, b = data[i + 2] >> 3
-    hist[(r << 10) | (g << 5) | b]++
-  }
-
-  for (let x = 0; x < S; x++) { push(x, 0); push(x, S - 1) }
-  for (let y = 1; y < S - 1; y++) { push(0, y); push(S - 1, y) }
-
-  const out = []
-  const used = new Uint8Array(hist.length)
-  for (let n = 0; n < count; n++) {
-    let best = -1, bestN = 0
-    for (let i = 0; i < hist.length; i++) {
-      if (used[i]) continue
-      const h = hist[i]
-      if (h > bestN) { bestN = h; best = i }
-    }
-    if (bestN === 0) break
-    used[best] = 1
-    out.push([
-      ((best >> 10) & 31) << 3,
-      ((best >> 5) & 31) << 3,
-      (best & 31) << 3,
-    ])
-  }
-  return out
-}
+// _borderBgColors and _peelBorderConnected moved to imageBgRemoval.js
+// (Phase 1.2) — shared with genericSpineAvatar.js.
 
 function _cropToOpaque(data, S) {
   let minX = S, minY = S, maxX = -1, maxY = -1
@@ -312,43 +284,6 @@ function _cropToOpaque(data, S) {
   const dw = bw * scale, dh = bh * scale
   c.drawImage(tmp, (S - dw) / 2, (S - dh) / 2, dw, dh)
   return c.getImageData(0, 0, S, S).data
-}
-
-function _peelBorderConnected(data, S, predicate, maxDepth = 255) {
-  const visited = new Uint8Array(S * S)
-  const depth   = new Uint8Array(S * S)
-  depth.fill(255)
-  const qx = new Int16Array(S * S)
-  const qy = new Int16Array(S * S)
-  let head = 0, tail = 0
-
-  const enqueue = (x, y, d) => {
-    if (x < 0 || x >= S || y < 0 || y >= S) return
-    if (d > maxDepth || visited[y * S + x]) return
-    visited[y * S + x] = 1
-    depth[y * S + x] = d
-    qx[tail] = x; qy[tail] = y; tail++
-  }
-
-  for (let x = 0; x < S; x++) { enqueue(x, 0, 0); enqueue(x, S - 1, 0) }
-  for (let y = 1; y < S - 1; y++) { enqueue(0, y, 0); enqueue(S - 1, y, 0) }
-
-  while (head < tail) {
-    const x = qx[head], y = qy[head]; head++
-    const d = depth[y * S + x]
-    if (d > maxDepth) continue
-    const i = (y * S + x) * 4
-    const a = data[i + 3]
-    const r = data[i], g = data[i + 1], b = data[i + 2]
-    if (a === 0 || predicate(r, g, b)) {
-      data[i + 3] = 0
-      const nd = d + 1
-      if (nd <= maxDepth) {
-        enqueue(x + 1, y, nd); enqueue(x - 1, y, nd)
-        enqueue(x, y + 1, nd); enqueue(x, y - 1, nd)
-      }
-    }
-  }
 }
 
 // ── Procedural fallback avatar ────────────────────────────────

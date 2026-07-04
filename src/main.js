@@ -32,8 +32,9 @@ let nearStore    = null
 let nearbyStores = new Set()
 let nearNPC      = null     // { id, name, ... } of closest NPC within interact range
 let nearPlayer   = null     // { id } of closest remote player within DM range
-const NPC_INTERACT_DIST    = 2.5  // map units
-const PLAYER_INTERACT_DIST = 2.5  // map units
+// One interaction range for NPCs and players (Phase 1.7 — merged from
+// NPC_INTERACT_DIST/PLAYER_INTERACT_DIST, tightened 2.5 → 1.5 per Jeremy).
+const INTERACT_DIST = 1.5  // map units
 const keys    = {}
 
 // ── Canvas init ───────────────────────────────────────────────
@@ -314,7 +315,7 @@ function update(dt) {
   }
 
   // NPC proximity
-  let closestNPC = null, closestDist = NPC_INTERACT_DIST * NPC_INTERACT_DIST
+  let closestNPC = null, closestDist = INTERACT_DIST * INTERACT_DIST
   for (const npc of resolvedNPCs) {
     const d = (npc.x-posX)**2 + (npc.y-posY)**2
     if (d < closestDist) { closestDist = d; closestNPC = npc }
@@ -345,7 +346,7 @@ function update(dt) {
   }
 
   // Remote player proximity (DM trigger)
-  let closestPlayer = null, closestPlayerDist = PLAYER_INTERACT_DIST * PLAYER_INTERACT_DIST
+  let closestPlayer = null, closestPlayerDist = INTERACT_DIST * INTERACT_DIST
   for (const [id, p] of Object.entries(remoteCache)) {
     const d = (p.x - posX) ** 2 + (p.y - posY) ** 2
     if (d < closestPlayerDist) { closestPlayerDist = d; closestPlayer = { id } }

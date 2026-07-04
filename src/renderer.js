@@ -8,11 +8,11 @@
 // ═══════════════════════════════════════════════════════════════
 import { MAP, MAP_W, MAP_H, CELL, CELL_STORE, STORES, STORE_GEOMETRY,
          WING_COLORS, getZone, TUTORIAL_STORES, TALL_CELLS, SKY_RECTS } from './map.js'
-import { RENDER_SCALE, WALL_HEIGHT, AVATAR_TEX_SIZE, AVATAR_SPRITE_SCALE, WALL_TEX_SIZE, STORE_TEX_SIZE } from './config.js'
+import { RENDER_SCALE, WALL_HEIGHT, AVATAR_TEX_SIZE, AVATAR_SPRITE_SCALE, WALL_TEX_SIZE, STORE_TEX_SIZE,
+         FLOOR_FOG_FACTOR, WALL_FOG_FACTOR, SPINE_CANVAS_FEET_Y } from './config.js'
 import { NPCS, NPC_CHARACTERS } from './npcs.js'
 const SPINE_CANVAS_W = 800
 const SPINE_CANVAS_H = 600
-const SPINE_CANVAS_FEET_Y = 480
 
 let renderSpineSlots = () => {}
 export function setRenderSpineSlots(fn) {
@@ -31,6 +31,18 @@ const _allStores = { ...STORES, ...TUTORIAL_STORES }
 // ── Utility ───────────────────────────────────────────────────
 export function hexRGB(h) {
   return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]
+}
+
+// ── Shared camera-space projection (Phase 1.1) ────────────────
+// World offset (sx,sy) → camera space: tx = lateral, ty = depth.
+// invDet is passed in so per-frame loops keep the division hoisted.
+// Writes into a reused scratch object — zero allocation in the render
+// loop. Callers destructure immediately, so reuse is safe.
+const _w2c = { tx: 0, ty: 0 }
+function worldToCamera(invDet, plX, plY, dirX, dirY, sx, sy) {
+  _w2c.tx = invDet * ( dirY * sx - dirX * sy)
+  _w2c.ty = invDet * (-plY  * sx + plX  * sy)
+  return _w2c
 }
 
 // ── Wall texture (brick / concrete) ──────────────────────────
@@ -350,8 +362,7 @@ function _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, play
   // Project player world position onto screen using camera transform
   const sx = playerX - camX, sy = playerY - camY
   const invDet = 1.0 / (plX * dirY - dirX * plY)
-  const tx = invDet * ( dirY * sx - dirX * sy)
-  const ty = invDet * (-plY  * sx + plX  * sy)
+  const { tx, ty } = worldToCamera(invDet, plX, plY, dirX, dirY, sx, sy)
   if (ty <= 0.15) return
 
   const screenX = Math.round((W / 2) * (1 + tx / ty))
@@ -416,7 +427,7 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
     const rdx0=dirX-plX, rdy0=dirY-plY, rdx1=dirX+plX, rdy1=dirY+plY
     const sfx = rowDist*(rdx1-rdx0)/W2, sfy = rowDist*(rdy1-rdy0)/W2
     let fx = posX+rowDist*rdx0, fy = posY+rowDist*rdy0
-    const fog = Math.max(0, Math.min(1, 1 - rowDist/(MAP_H*.6)))
+    const fog = Math.max(0, Math.min(1, 1 - rowDist/(MAP_H*FLOOR_FOG_FACTOR)))
     for (let x = 0; x < W2; x++) {
       const tx=fx|0, ty=fy|0, idx=(y*W2+x)*4
       if (isFloor) {
@@ -496,7 +507,7 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
       if((side===0&&rayDX>0)||(side===1&&rayDY<0)) texX=tSz-1-texX
     }
 
-    const fog    = Math.max(0, Math.min(1, 1-pd/(MAP_H*.65)))
+    const fog    = Math.max(0, Math.min(1, 1-pd/(MAP_H*WALL_FOG_FACTOR)))
     const bright = fog*(side===1?.75:1)
     const tex    = TEXTURES[wallType]||TEX_WALL
 
@@ -616,8 +627,7 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, self
 
   for (const sp of sprites) {
     const sx=sp.x-posX, sy=sp.y-posY
-    const tx=invDet*(dirY*sx-dirX*sy)
-    const ty=invDet*(-plY*sx+plX*sy)
+    const { tx, ty } = worldToCamera(invDet, plX, plY, dirX, dirY, sx, sy)
     if(ty<=0.1) continue
 
     const screenX = Math.round((W2/2)*(1+tx/ty))
@@ -627,7 +637,7 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, self
     const dxStart=Math.max(0,screenX-(w>>1))
     const dxEnd  =Math.min(W2-1,screenX+(w>>1))
 
-    const fog = Math.max(0, Math.min(1, 1-ty/(MAP_H*0.65)))
+    const fog = Math.max(0, Math.min(1, 1-ty/(MAP_H*WALL_FOG_FACTOR)))
 
     // ── Resolve texture data + size — once per sprite, not per column ────────
     let texData    = null    // Uint8ClampedArray | Uint8Array
@@ -701,8 +711,7 @@ function _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, self
 function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp) {
   const invDet = 1.0 / (plX * dirY - dirX * plY)
   const sx = sp.x - posX, sy = sp.y - posY
-  const tx = invDet * ( dirY * sx - dirX * sy)
-  const ty = invDet * (-plY  * sx + plX  * sy)
+  const { tx, ty } = worldToCamera(invDet, plX, plY, dirX, dirY, sx, sy)
   if (ty <= 0.1) return
 
   // Animation already advanced in renderFrame pass 1; all slots rendered by
@@ -744,7 +753,7 @@ function _drawSpineOverlay(ctx, W, H, posX, posY, dirX, dirY, plX, plY, sp) {
   const colR = Math.min(W - 1, dxEnd)
   if (colL > colR || spriteW <= 0 || spriteH <= 0) return
 
-  const fog      = Math.max(0, Math.min(1, 1 - ty / (MAP_H * 0.65)))
+  const fog      = Math.max(0, Math.min(1, 1 - ty / (MAP_H * WALL_FOG_FACTOR)))
   const scaleX   = RW / W   // render-scale factor for zBuf lookup
 
   // ── Build clip path from z-buffer visible column runs ────────
@@ -794,8 +803,7 @@ function _drawNameTags(posX, posY, dirX, dirY, plX, plY, remoteCache) {
   for (const [id,sp] of Object.entries(remoteCache)) {
     if(now-sp.lastSeen>6000) continue
     const sx=sp.x-posX, sy=sp.y-posY
-    const tx=invDet*(dirY*sx-dirX*sy)
-    const ty=invDet*(-plY*sx+plX*sy)
+    const { tx, ty } = worldToCamera(invDet, plX, plY, dirX, dirY, sx, sy)
     if(ty<=0.2) continue
 
     const screenX = Math.round((W2/2)*(1+tx/ty))
@@ -805,7 +813,7 @@ function _drawNameTags(posX, posY, dirX, dirY, plX, plY, remoteCache) {
     if(nameY<10||nameY>H2-10) continue
     if(screenX<20||screenX>W2-20) continue
 
-    const fog   = Math.max(0,Math.min(1,1-ty/(MAP_H*0.65)))
+    const fog   = Math.max(0,Math.min(1,1-ty/(MAP_H*WALL_FOG_FACTOR)))
     const alpha = fog*0.85
     const label = '#'+id.slice(0,6).toUpperCase()
     const [cr,cg,cb]=sp.color
@@ -928,8 +936,7 @@ export function drawNPCSprites(posX, posY, dirX, dirY, plX, plY) {
 
   for (const npc of sorted) {
     const sx = npc.x - posX, sy = npc.y - posY
-    const tx = invDet * ( dirY * sx - dirX * sy)
-    const ty = invDet * (-plY  * sx + plX  * sy)
+    const { tx, ty } = worldToCamera(invDet, plX, plY, dirX, dirY, sx, sy)
     if (ty <= 0.15) continue
 
     const screenX  = Math.round((W2/2) * (1 + tx/ty))
@@ -941,7 +948,7 @@ export function drawNPCSprites(posX, posY, dirX, dirY, plX, plY) {
     const dxStart  = Math.max(0,    screenX - (w >> 1))
     const dxEnd    = Math.min(W2-1, screenX + (w >> 1))
 
-    const fog      = Math.max(0, Math.min(1, 1 - ty / (MAP_H * 0.65)))
+    const fog      = Math.max(0, Math.min(1, 1 - ty / (MAP_H * WALL_FOG_FACTOR)))
 
     for (let stripe = dxStart; stripe <= dxEnd; stripe++) {
       if (ty >= zBuf[stripe]) continue    // z-buffer: walls occlude NPC
@@ -983,8 +990,7 @@ export function drawNPCNameTags(posX, posY, dirX, dirY, plX, plY) {
 
   for (const npc of resolvedNPCs) {
     const sx = npc.x - posX, sy = npc.y - posY
-    const tx = invDet * ( dirY * sx - dirX * sy)
-    const ty = invDet * (-plY  * sx + plX  * sy)
+    const { tx, ty } = worldToCamera(invDet, plX, plY, dirX, dirY, sx, sy)
     if (ty <= 0.2) continue
 
     const screenX = Math.round((W2/2) * (1 + tx/ty))
@@ -994,7 +1000,7 @@ export function drawNPCNameTags(posX, posY, dirX, dirY, plX, plY) {
     if (nameY < 10 || nameY > H2 - 10) continue
     if (screenX < 30 || screenX > W2 - 30) continue
 
-    const fog   = Math.max(0, Math.min(1, 1 - ty / (MAP_H * 0.65)))
+    const fog   = Math.max(0, Math.min(1, 1 - ty / (MAP_H * WALL_FOG_FACTOR)))
     const alpha = fog * 0.9
     const [cr, cg, cb] = npc.color
 

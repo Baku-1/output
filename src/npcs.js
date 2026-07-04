@@ -98,7 +98,4 @@ export const NPCS = [
     y:           75.0,
   },
 
-  // ── Future placements (uncomment to deploy) ────────────────
-  // { id: 'rebo-axie-franchise', characterId: 'rebo', x: 83.0, y: 11.0 },
-
 ]

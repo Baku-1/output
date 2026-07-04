@@ -35,7 +35,30 @@ export const MORALIS_CHAIN    = '0x7e4'   // Ronin mainnet chain ID in hex
 // exported here, so it can't be baked into the client bundle.
 export const GROQ_MODEL       = import.meta.env.VITE_GROQ_MODEL   || 'llama-3.1-8b-instant'
 
+// ── Avatar background removal (Phase 1.3) ─────────────────────
+// Manhattan-distance tolerance (R+G+B) for the border BFS peel in
+// imageBgRemoval.js. INTENTIONALLY different per collection/path —
+// tuned by eye per art style, do NOT unify:
+//   axie:        Axie marketplace portraits (shallow peel, mask-safe)
+//   generic:     static generic-NFT path in avatarCache (raised from 40
+//                to catch tan/beige/off-white backgrounds)
+//   genericSpine: generic 6-bone Spine bake path
+export const BG_TOLERANCE = {
+  axie:         50,
+  generic:      55,
+  genericSpine: 40,
+}
+
 // ── Renderer ──────────────────────────────────────────────────
+// Fog falloff (fraction of MAP_H at which fog reaches full). INTENTIONALLY
+// different per pass — floor-cast vs wall DDA/sprites are separate pipelines
+// tuned separately (Phase 1.5, naming only — values unchanged).
+export const FLOOR_FOG_FACTOR = 0.6
+export const WALL_FOG_FACTOR  = 0.65
+// Spine ghost-canvas Y where the avatar's ground contact sits (Phase 1.4 —
+// single source of truth; lives here so renderer.js doesn't have to import
+// the lazy-loaded pixi/spine stack just for a constant).
+export const SPINE_CANVAS_FEET_Y = 480
 export const RENDER_SCALE     = 0.70   // internal resolution (bump for sharpness)
 export const FOV_PLANE        = 0.70   // camera plane width (~70° FOV)
 export const WALL_HEIGHT      = 1.5    // wall slice height multiplier
