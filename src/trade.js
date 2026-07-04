@@ -14,6 +14,7 @@ import { Seaport } from '@opensea/seaport-js'
 import { ItemType } from '@opensea/seaport-js/lib/constants.js' // ItemType is not re-exported from the main entry point in v4.x
 import { ethers } from 'ethers'
 import { getProvider } from './wallet.js'
+import { isDecimalTokenId } from './validation.js'
 
 const SEAPORT_ADDRESS = '0x0000000000000068f116a894984e2db1123eb395'
 const RONIN_RPC       = 'https://api.roninchain.com/rpc'
@@ -63,12 +64,19 @@ export function getRoninProvider() {
 }
 
 // NFT item helper
-// Converts a normalised nftService.js NFT object into a Seaport item
+// Converts a normalised nftService.js NFT object into a Seaport item.
+// Phase 2.1: decimal-uint256 check enforced HERE (the construction
+// boundary), not only at the tradeOfferFlow UI call site — a second
+// entry point into order construction can no longer bypass it.
 export function nftToSeaportItem(nft, recipientAddress) {
+  const id = String(nft.tokenId)
+  if (!isDecimalTokenId(id)) {
+    throw new Error('Invalid token ID for trade order: ' + id.slice(0, 80))
+  }
   const item = {
     itemType:   ItemType.ERC721,
     token:      nft.contractAddress,
-    identifier: String(nft.tokenId),
+    identifier: id,
   }
   if (recipientAddress) item.recipient = recipientAddress
   return item

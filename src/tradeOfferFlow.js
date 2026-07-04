@@ -23,6 +23,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { createTradeOrder, serialiseOrder, getRoninProvider } from './trade.js'
+import { safeTokenId, isDecimalTokenId } from './validation.js'
 import { sendMessage, sendToInbox } from './dmService.js'
 import { fetchWalletNFTs } from './nftService.js'
 import { getAddress, shortAddress } from './wallet.js'
@@ -71,10 +72,7 @@ export async function loadTradeableContracts() {
   console.log(`[tradeOfferFlow] ${found.size} tradeable contracts loaded from Mavis Market`)
 }
 
-// Display allow-list — same discipline as dmPanel._safeTokenId (Fix #8)
-const _TOKEN_RE   = /^[a-zA-Z0-9_-]{1,64}$/
-// Order-bound token IDs must be decimal uint256 (max 78 digits) — spec R4
-const _DECIMAL_RE = /^\d{1,78}$/
+// Token-ID validation shared with dmPanel via validation.js (Phase 2.1)
 
 let _overlay = null
 
@@ -118,9 +116,9 @@ let _sending         = false
 let _openGen = 0
 
 // -- Sanitisers (spec R2/R3) -------------------------------------
+// null fallback: invalid IDs are skipped entirely in the NFT grid
 function _safeTokenId(val) {
-  const s = String(val ?? '')
-  return _TOKEN_RE.test(s) ? s : null
+  return safeTokenId(val, null)
 }
 
 function _safeImgUrl(url) {
@@ -307,7 +305,7 @@ async function _handleSend() {
   const offerId = String(_selectedNFT.tokenId)
   const wantId  = String(_selectedWantNFT.tokenId)
   const status  = document.getElementById('tof-status')
-  if (!_DECIMAL_RE.test(offerId) || !_DECIMAL_RE.test(wantId)) {
+  if (!isDecimalTokenId(offerId) || !isDecimalTokenId(wantId)) {
     status.textContent = '❌ Invalid token ID — cannot build order'
     console.warn('[tradeOfferFlow] non-decimal token ID rejected:', { offerId, wantId })
     return

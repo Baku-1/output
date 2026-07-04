@@ -17,6 +17,7 @@
 
 import { onMessage, sendMessage, fetchHistory, isReady } from './dmService.js'
 import { getAddress, shortAddress } from './wallet.js'
+import { safeTokenId } from './validation.js'
 
 // Lazy trade-module loader (Fix #10)
 // Static imports replaced with dynamic imports so a parse/export failure in
@@ -195,16 +196,16 @@ function _renderMessage(msg, scroll = true) {
   if (scroll) _msgList.scrollTop = _msgList.scrollHeight
 }
 
-// Token ID allow-list (Fix #8 hardening)
-const _TOKEN_RE = /^[a-zA-Z0-9_-]{1,64}$/
+// Token ID allow-list (Fix #8 hardening) — shared pattern, validation.js
 function _safeTokenId(val) {
   const s = String(val ?? '')
   if (!s) return '?'
-  if (!_TOKEN_RE.test(s)) {
+  const ok = safeTokenId(s, null)
+  if (ok === null) {
     console.warn('[dmPanel] rejected invalid token ID from peer:', s)
     return '[invalid token]'
   }
-  return s
+  return ok
 }
 
 // Trade offer card

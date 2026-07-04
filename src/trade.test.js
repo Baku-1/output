@@ -66,6 +66,16 @@ describe('nftToSeaportItem', () => {
     const item = nftToSeaportItem({ contractAddress: '0x1', tokenId: 1 })
     expect(item.recipient).toBeUndefined()
   })
+
+  // Phase 2.1: decimal-uint256 enforcement at the construction boundary —
+  // a caller that skips the tradeOfferFlow UI check can no longer build
+  // an order around a crafted ID.
+  it('throws on non-decimal token IDs (boundary enforcement)', () => {
+    expect(() => nftToSeaportItem({ contractAddress: '0x1', tokenId: '0x1f' })).toThrow(/Invalid token ID/)
+    expect(() => nftToSeaportItem({ contractAddress: '0x1', tokenId: '<script>' })).toThrow(/Invalid token ID/)
+    expect(() => nftToSeaportItem({ contractAddress: '0x1', tokenId: '9'.repeat(79) })).toThrow(/Invalid token ID/)
+    expect(() => nftToSeaportItem({ contractAddress: '0x1', tokenId: null })).toThrow(/Invalid token ID/)
+  })
 })
 
 // ─── serialiseOrder / deserialiseOrder ─────────────────────────────────────
