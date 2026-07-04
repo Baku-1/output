@@ -192,17 +192,26 @@ export function interpolatePlayers(dt) {
   const alpha = 1 - Math.exp(-LERP_FACTOR * dt)
   const now   = Date.now()
 
+  // Phase 3.1: collect stale IDs first, delete after the loop.
+  // (delete-current-key inside for...in is spec-safe, but this keeps the
+  // iteration/mutation boundary explicit and future-proofs the loop body.)
+  let stale = null
   for (const id in remoteCache) {
     const p = remoteCache[id]
     if (now - p.lastSeen > PLAYER_TIMEOUT) {
-      // Release Spine slot/GPU resources (no-op for static textures)
-      p.texture?.destroy?.()
-      delete remoteCache[id]
-      updatePlayerCount()
+      (stale ??= []).push(id)
       continue
     }
     p.x += (p.targetX - p.x) * alpha
     p.y += (p.targetY - p.y) * alpha
+  }
+  if (stale) {
+    for (const id of stale) {
+      // Release Spine slot/GPU resources (no-op for static textures)
+      remoteCache[id].texture?.destroy?.()
+      delete remoteCache[id]
+    }
+    updatePlayerCount()
   }
 }
 

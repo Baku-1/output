@@ -31,7 +31,10 @@ let _accountCbs = []
 
 // Eagerly start extension connector discovery
 const _extConnectorPromise = requestRoninWalletConnector()
-_extConnectorPromise.catch(() => {})
+// Phase 3.4: never a no-op catch (Sky Mavis docs convention — always log).
+// User-facing PROVIDER_NOT_FOUND handling stays in _doConnect; this probe
+// is eager/background only, so a warn is the right floor.
+_extConnectorPromise.catch(err => console.warn('[wallet] eager connector probe failed:', err))
 
 function _notifyListeners(address) {
   const payload = { address, isConnected: !!address }

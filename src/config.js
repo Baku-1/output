@@ -21,6 +21,17 @@ export const RONIN_CHAIN_ID   = 2020          // mainnet (2021 = Saigon testnet)
 export const SKY_MAVIS_API_KEY = import.meta.env.VITE_SKY_MAVIS_API_KEY
 export const RONIN_RPC        = `https://api-gateway.skymavis.com/rpc?apikey=${SKY_MAVIS_API_KEY}`
 
+// ── Seaport / trading (Phase 3.3) ──────────────────────────────
+// Canonical cross-chain Seaport 1.6, verified live on Ronin mainnet
+// (deployed 17 Mar 2025). Env override enables testnet pointing.
+export const SEAPORT_ADDRESS = import.meta.env.VITE_SEAPORT_ADDRESS
+  || '0x0000000000000068f116a894984e2db1123eb395'
+// Public read-only RPC for order verification. DISTINCT from RONIN_RPC
+// above (authenticated gateway) — trade.js deliberately uses the keyless
+// public endpoint for reads. Do not merge the two.
+export const RONIN_PUBLIC_RPC = import.meta.env.VITE_RONIN_PUBLIC_RPC
+  || 'https://api.roninchain.com/rpc'
+
 // ── Sky Mavis API ──────────────────────────────────────────────
 export const MAVIS_NFT_API    = 'https://api-gateway.skymavis.com/v2/collections'
 

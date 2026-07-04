@@ -15,9 +15,8 @@ import { ItemType } from '@opensea/seaport-js/lib/constants.js' // ItemType is n
 import { ethers } from 'ethers'
 import { getProvider } from './wallet.js'
 import { isDecimalTokenId } from './validation.js'
-
-const SEAPORT_ADDRESS = '0x0000000000000068f116a894984e2db1123eb395'
-const RONIN_RPC       = 'https://api.roninchain.com/rpc'
+// Phase 3.3: address/RPC live in config.js (env-overridable for testnet)
+import { SEAPORT_ADDRESS, RONIN_PUBLIC_RPC } from './config.js'
 // Open channel — correct for direct P2P trades on Ronin Seaport 1.6.
 // Mavis Market operator trades use a non-zero Sky Mavis conduit key; this
 // app does not route through that operator.
@@ -46,7 +45,7 @@ let _readProvider = null
 
 function _getReadSeaport() {
   if (!_readSeaport) {
-    _readProvider = new ethers.JsonRpcProvider(RONIN_RPC)
+    _readProvider = new ethers.JsonRpcProvider(RONIN_PUBLIC_RPC)
     _readSeaport  = new Seaport(_readProvider, { overrides: { contractAddress: SEAPORT_ADDRESS } })
   }
   return _readSeaport
