@@ -413,12 +413,9 @@ function _drawSelfOverlay(selfTexture, t, camX, camY, dirX, dirY, plX, plY, play
   ctx.restore()
 }
 
-export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfSprite = null) {
-  // Clear sprite depth buffer each frame
-  if (spriteZBuf) spriteZBuf.fill(Infinity)
+// ── Pass 1: floor + ceiling raster (Phase 4.1, mechanical extract) ──
+function _renderFloorCeiling(posX, posY, dirX, dirY, plX, plY) {
   const W2 = RW, H2 = RH, px = pixels, halfH = H2 * .5
-
-  // ── 1. Floor + Ceiling ──────────────────────────────────────
   for (let y = 0; y < H2; y++) {
     const isFloor = y > halfH
     const p = isFloor ? (y - halfH) : (halfH - y)
@@ -458,8 +455,11 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
       px[idx+3]=255; fx+=sfx; fy+=sfy
     }
   }
+}
 
-  // ── 2. Wall DDA — fills zBuf ────────────────────────────────
+// ── Pass 2: wall DDA (Phase 4.1, mechanical extract) — fills zBuf ──
+function _renderWalls(posX, posY, dirX, dirY, plX, plY, t, nearStoreId) {
+  const W2 = RW, H2 = RH, px = pixels
   for (let x = 0; x < W2; x++) {
     const camX=2*x/W2-1, rayDX=dirX+plX*camX, rayDY=dirY+plY*camX
     let mapX=posX|0, mapY=posY|0
@@ -554,24 +554,12 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
       px[idx2+3] = 255
     }
   }
+}
 
-  // ── 3. Sprite cast — NPCs + remote players (far to near) ───
-  // Per-frame delta — computed once here, used by both _drawSprites and _drawSpineOverlay
-  const dt = t - _lastRenderT
-  _lastRenderT = t
-
-  // NPCs are sorted with remote players so z-buffer occlusion is correct
-  _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, selfSprite)
-  drawNPCSprites(posX, posY, dirX, dirY, plX, plY)
-
-  // ── 4. Flush to screen ──────────────────────────────────────
-  offCtx.putImageData(imgData, 0, 0)
-  ctx.imageSmoothingEnabled = false
-  ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height)
-
-  // ── 5. Spine overlays — drawImage pass at full canvas resolution ─
-  // Runs after putImageData so the z-buffer reflects the final wall depths.
-  // Only SpineAvatarInstance sprites; static textures were handled above.
+// ── Pass 5: Spine overlay passes (Phase 4.1, mechanical extract) ──
+// Runs after putImageData so the z-buffer reflects the final wall depths.
+// Only SpineAvatarInstance sprites; static textures are drawn in pass 3.
+function _renderSpineOverlays(posX, posY, dirX, dirY, plX, plY, remoteCache, dt) {
   const W2full = canvas.width, H2full = canvas.height
   const now2 = Date.now()
 
@@ -599,6 +587,34 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
     _drawSpineOverlay(ctx, W2full, H2full, posX, posY, dirX, dirY, plX, plY, sp)
   }
   ctx.restore()
+}
+
+export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfSprite = null) {
+  // Clear sprite depth buffer each frame
+  if (spriteZBuf) spriteZBuf.fill(Infinity)
+
+  // ── 1. Floor + Ceiling ──────────────────────────────────────
+  _renderFloorCeiling(posX, posY, dirX, dirY, plX, plY)
+
+  // ── 2. Wall DDA — fills zBuf ────────────────────────────────
+  _renderWalls(posX, posY, dirX, dirY, plX, plY, t, nearStoreId)
+
+  // ── 3. Sprite cast — NPCs + remote players (far to near) ───
+  // Per-frame delta — computed once here, used by both _drawSprites and _drawSpineOverlay
+  const dt = t - _lastRenderT
+  _lastRenderT = t
+
+  // NPCs are sorted with remote players so z-buffer occlusion is correct
+  _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, selfSprite)
+  drawNPCSprites(posX, posY, dirX, dirY, plX, plY)
+
+  // ── 4. Flush to screen ──────────────────────────────────────
+  offCtx.putImageData(imgData, 0, 0)
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height)
+
+  // ── 5. Spine overlays — full-res pass (extracted, Phase 4.1) ──
+  _renderSpineOverlays(posX, posY, dirX, dirY, plX, plY, remoteCache, dt)
 
   _drawCrosshair()
   _drawVignette()
