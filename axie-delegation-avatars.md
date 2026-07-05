@@ -82,17 +82,39 @@ views are per-token. So we need one of:
 
 ### Option B — Sky Mavis GraphQL (least code, unofficial schema)
 
-app.axie's **Delegation Center** ("view others' delegation to you") is
-driven by the same GraphQL gateway we already proxy
+app.axie's **Delegation Center** has a literal **"Delegated to Me"** tab
+([guide](https://support.axieinfinity.com/hc/en-us/articles/29990965331867-Axie-Delegation-Guide)),
+and Homeland already uses delegated Axies for its *Avatar mode*
+([announcement](https://x.com/AxieInfinity/status/1848287125961347467)) — so
+a delegatee-side query exists on the gateway we already proxy
 (`api-gateway.skymavis.com/graphql/axie-marketplace` via `api/graphql.js`).
-The schema is not publicly documented; next step is an introspection query
-through our proxy (needs the API key, so run from dev/deployed env) looking
-for a `delegations(delegatee: …)`-shaped query or delegation fields on
-`Axie`. If it exists, this is one GraphQL call — no log scanning at all.
 
-**Recommendation:** try B first (one introspection to confirm), keep A as
-the fallback/verifier. A is guaranteed to work; B is guaranteed to be less
-code if the query exists.
+What we ruled out (checked 2026-07): the schema is not in any public doc —
+the community GraphQL docs ([ShaneMaglangit/axie-graphql-documentation](https://github.com/ShaneMaglangit/axie-graphql-documentation))
+were archived Apr 2022, pre-delegation; and the **Mavis Market** gateway
+(`marketplace-graphql.skymavis.com`, per [skymavis/ronin-market-sdk](https://github.com/skymavis/ronin-market-sdk))
+has **no** delegation fields at all — its `Erc721` type carries only
+`owner`/`isLocked`. Delegation is app.axie-gateway-only.
+
+Exact query names need one introspection round-trip with a real API key,
+which this sandbox's network policy blocks. That's automated in
+**`scripts/probe-delegation-graphql.mjs`**:
+
+```bash
+SKY_MAVIS_API_KEY=xxx node scripts/probe-delegation-graphql.mjs
+# or against a deployment (key attached server-side by api/graphql.js):
+node scripts/probe-delegation-graphql.mjs --url https://<deployment>/api/graphql
+```
+
+It introspects Query fields and types matching `/delegat/i` (printing full
+arg/return signatures), dumps the `axies(...)` filter args in case
+delegation is a filter flag rather than a top-level query, and — if
+introspection is disabled — falls back to probing candidate field names,
+using "Cannot query field" errors to prove absence.
+
+**Recommendation:** run the probe first; if a delegatee query exists, B is
+one GraphQL call and no log scanning. Keep A as the trustless
+fallback/verifier either way.
 
 ## 4. Integration sketch (once enumeration works)
 
@@ -118,8 +140,8 @@ code if the query exists.
 1. `supportsInterface(0xba63ebbb)` on `0x32950db2…d74c` via Ronin RPC — one
    `eth_call` confirms the deployed Axie contract matches the draft spec
    (the deployed version may deviate from the Draft-status REP).
-2. GraphQL introspection for a delegations query (Option B) through
-   `api/graphql.js` with the real API key.
+2. GraphQL introspection for a delegations query (Option B) — run
+   `scripts/probe-delegation-graphql.mjs` with the real API key.
 3. Ronin public-RPC `eth_getLogs` block-range limit (affects Option A chunk
    size).
 4. Whether other Ronin collections we care about (Wild Forest, etc.) also
