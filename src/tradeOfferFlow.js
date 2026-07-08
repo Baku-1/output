@@ -24,6 +24,7 @@
 
 import { createTradeOrder, serialiseOrder, getRoninProvider } from './trade.js'
 import { safeTokenId, isDecimalTokenId } from './validation.js'
+import { TRADE_EXPIRY_SEC } from './config.js'
 import { sendMessage, sendToInbox } from './dmService.js'
 import { fetchWalletNFTs } from './nftService.js'
 import { getAddress, shortAddress } from './wallet.js'
@@ -325,7 +326,7 @@ async function _handleSend() {
       tokenId:         wantId,
     }
 
-    const endTime = Math.floor(Date.now() / 1000) + 86400
+    const endTime = Math.floor(Date.now() / 1000) + TRADE_EXPIRY_SEC
 
     const { order, orderHash } = await createTradeOrder(
       [_selectedNFT],

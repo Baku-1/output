@@ -196,6 +196,17 @@ function _renderMessage(msg, scroll = true) {
   if (scroll) _msgList.scrollTop = _msgList.scrollHeight
 }
 
+// Relative expiry — "in 58 min" is unambiguous where a bare clock time
+// ("12:26 AM") read like it was about to expire. Snapshot at render time.
+function _formatExpiry(endTime) {
+  const secs = endTime - Math.floor(Date.now() / 1000)
+  if (secs <= 0) return 'expired'
+  const m = Math.ceil(secs / 60)
+  if (m < 60) return `in ${m} min`
+  const h = Math.floor(m / 60), rm = m % 60
+  return rm ? `in ${h}h ${rm}m` : `in ${h}h`
+}
+
 // Token ID allow-list (Fix #8 hardening) — shared pattern, validation.js
 function _safeTokenId(val) {
   const s = String(val ?? '')
@@ -237,7 +248,7 @@ function _renderTradeCard(msg, isMine) {
   card.appendChild(wantRow)
 
   const endTime = typeof p?.endTime === 'number' ? p.endTime : null
-  const expiresAt = endTime ? new Date(endTime * 1000).toLocaleTimeString() : 'unknown'
+  const expiresAt = endTime ? _formatExpiry(endTime) : 'unknown'
   const expiryRow = document.createElement('div')
   expiryRow.className = 'tc-row tc-expiry'
   expiryRow.textContent = 'Expires: ' + expiresAt

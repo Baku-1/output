@@ -16,7 +16,7 @@ import { ethers } from 'ethers'
 import { getProvider } from './wallet.js'
 import { isDecimalTokenId } from './validation.js'
 // Phase 3.3: address/RPC live in config.js (env-overridable for testnet)
-import { SEAPORT_ADDRESS, RONIN_PUBLIC_RPC } from './config.js'
+import { SEAPORT_ADDRESS, RONIN_PUBLIC_RPC, TRADE_EXPIRY_SEC } from './config.js'
 // Open channel — correct for direct P2P trades on Ronin Seaport 1.6.
 // Mavis Market operator trades use a non-zero Sky Mavis conduit key; this
 // app does not route through that operator.
@@ -95,8 +95,8 @@ export async function createTradeOrder(offerNFTs, wantNFTs, offererAddress, sign
   // Consideration: the NFTs the offerer wants, sent to the offerer's address
   const consideration = wantNFTs.map(nft => nftToSeaportItem(nft, offererAddress))
 
-  // Default 24-hour expiry if not specified
-  const orderEndTime = endTime ?? Math.floor(Date.now() / 1000) + 86400
+  // Default expiry if not specified (TRADE_EXPIRY_SEC in config.js)
+  const orderEndTime = endTime ?? Math.floor(Date.now() / 1000) + TRADE_EXPIRY_SEC
 
   const { executeAllActions } = await seaport.createOrder(
     { offer, consideration, endTime: String(orderEndTime), conduitKey: RONIN_CONDUIT_KEY },

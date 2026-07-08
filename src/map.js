@@ -665,7 +665,7 @@ export const TUTORIAL_STORES = {
       { heading: 'On-chain settlement',
         body: 'Tap Accept to approve the trade via Seaport on Ronin. Both wallets must sign. The exchange is atomic — either both NFTs move or neither does.' },
       { heading: 'Notes',
-        body: 'Trade offers expire after 24 hours. If you receive an offer while exploring, a notification appears at the top of your screen — press Escape to view it.' },
+        body: 'Trade offers expire after 1 hour. If you receive an offer while exploring, a notification appears at the top of your screen — press Escape to view it.' },
     ],
   },
   tutorial_dm: {

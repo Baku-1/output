@@ -22,6 +22,10 @@ export const SKY_MAVIS_API_KEY = import.meta.env.VITE_SKY_MAVIS_API_KEY
 export const RONIN_RPC        = `https://api-gateway.skymavis.com/rpc?apikey=${SKY_MAVIS_API_KEY}`
 
 // ── Seaport / trading (Phase 3.3) ──────────────────────────────
+// Trade offer lifetime. 1h (Jeremy, 2026-07-05): plenty of time to
+// accept/decline — participants are talking in-app during the trade.
+export const TRADE_EXPIRY_SEC = 60 * 60
+
 // Canonical cross-chain Seaport 1.6, verified live on Ronin mainnet
 // (deployed 17 Mar 2025). Env override enables testnet pointing.
 export const SEAPORT_ADDRESS = import.meta.env.VITE_SEAPORT_ADDRESS

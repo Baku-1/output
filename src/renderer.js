@@ -589,9 +589,19 @@ function _renderSpineOverlays(posX, posY, dirX, dirY, plX, plY, remoteCache, dt)
   ctx.restore()
 }
 
+function _clearSpriteZBuf() { if (spriteZBuf) spriteZBuf.fill(Infinity) }
+
+function _advanceClock(t) { const dt = t - _lastRenderT; _lastRenderT = t; return dt }
+
+function _flushToScreen() {
+  offCtx.putImageData(imgData, 0, 0)
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height)
+}
+
 export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, nearStoreId, selfSprite = null) {
   // Clear sprite depth buffer each frame
-  if (spriteZBuf) spriteZBuf.fill(Infinity)
+  _clearSpriteZBuf()
 
   // ── 1. Floor + Ceiling ──────────────────────────────────────
   _renderFloorCeiling(posX, posY, dirX, dirY, plX, plY)
@@ -601,17 +611,14 @@ export function renderFrame(posX, posY, dirX, dirY, plX, plY, t, remoteCache, ne
 
   // ── 3. Sprite cast — NPCs + remote players (far to near) ───
   // Per-frame delta — computed once here, used by both _drawSprites and _drawSpineOverlay
-  const dt = t - _lastRenderT
-  _lastRenderT = t
+  const dt = _advanceClock(t)
 
   // NPCs are sorted with remote players so z-buffer occlusion is correct
   _drawSprites(posX, posY, dirX, dirY, plX, plY, t, remoteCache, dt, selfSprite)
   drawNPCSprites(posX, posY, dirX, dirY, plX, plY)
 
   // ── 4. Flush to screen ──────────────────────────────────────
-  offCtx.putImageData(imgData, 0, 0)
-  ctx.imageSmoothingEnabled = false
-  ctx.drawImage(offCanvas, 0, 0, canvas.width, canvas.height)
+  _flushToScreen()
 
   // ── 5. Spine overlays — full-res pass (extracted, Phase 4.1) ──
   _renderSpineOverlays(posX, posY, dirX, dirY, plX, plY, remoteCache, dt)

@@ -243,14 +243,14 @@ describe('createTradeOrder', () => {
     expect(callArgs.endTime).toBe(String(endTime))
   })
 
-  it('defaults to 24 h expiry when endTime is omitted', async () => {
+  it('defaults to TRADE_EXPIRY_SEC (1 h) expiry when endTime is omitted', async () => {
     const before = Math.floor(Date.now() / 1000)
     await createTradeOrder([], [], '0xofferer', makeSigner())
     const after = Math.floor(Date.now() / 1000)
     const callArgs = mockSeaport.createOrder.mock.calls[0][0]
     const endTime = Number(callArgs.endTime)
-    expect(endTime).toBeGreaterThanOrEqual(before + 86400)
-    expect(endTime).toBeLessThanOrEqual(after + 86400)
+    expect(endTime).toBeGreaterThanOrEqual(before + 3600)
+    expect(endTime).toBeLessThanOrEqual(after + 3600)
   })
 })
 
