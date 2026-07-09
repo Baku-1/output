@@ -113,14 +113,19 @@ function _makeCard(nft, address, resolve) {
   noPreview.className = 'ap-no-preview'
   noPreview.style.display = 'none'
 
-  if (nft.thumbnailUrl) {
-    resolveImageUrl(nft.thumbnailUrl).then(resolvedUrl => {
-      if (resolvedUrl) {
-        img.src = resolvedUrl
-      }
-      // If null, the SVG silhouette already showing is fine — picker is still usable.
-    })
-  }
+  // Display the actual NFT art (same URL the in-game avatar uses) first;
+  // fall back to the CDN thumbnailUrl when the art URL is dead (expired
+  // IPFS pin, 404, CORS). resolveImageUrl load-verifies each candidate
+  // and returns null on failure, so the first working URL wins.
+  const candidates = [resolveAvatarImageUrl(nft) || nft.imageUrl, nft.thumbnailUrl]
+    .filter((u, i, a) => u && a.indexOf(u) === i)
+  ;(async () => {
+    for (const u of candidates) {
+      const resolved = await resolveImageUrl(u)
+      if (resolved) { img.src = resolved; return }
+    }
+    // All candidates failed — the SVG silhouette already showing is fine.
+  })()
 
   const label = document.createElement('div')
   label.className = 'ap-label'

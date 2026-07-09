@@ -207,6 +207,19 @@ function _formatExpiry(endTime) {
   return rm ? `in ${h}h ${rm}m` : `in ${h}h`
 }
 
+// Locally-resolved trades (accepted/declined) — survives panel close/
+// reopen, which re-renders offers from Ably history with live buttons.
+// Keyed by orderHash (always present in trade_payload). sessionStorage:
+// per-tab lifetime, comfortably outlives Ably's ~2min history window.
+const _RESOLVED_KEY = 'resolved-trades'
+let _resolvedTrades = {}
+try { _resolvedTrades = JSON.parse(sessionStorage.getItem(_RESOLVED_KEY)) || {} } catch { /* corrupt — start clean */ }
+function _markTradeResolved(orderHash, outcome) {
+  if (!orderHash) return
+  _resolvedTrades[orderHash] = outcome
+  try { sessionStorage.setItem(_RESOLVED_KEY, JSON.stringify(_resolvedTrades)) } catch { /* quota — non-fatal */ }
+}
+
 // Token ID allow-list (Fix #8 hardening) — shared pattern, validation.js
 function _safeTokenId(val) {
   const s = String(val ?? '')
@@ -254,7 +267,17 @@ function _renderTradeCard(msg, isMine) {
   expiryRow.textContent = 'Expires: ' + expiresAt
   card.appendChild(expiryRow)
 
-  if (!isMine) {
+  // Resolved earlier this session (accept/decline)? Render the outcome
+  // instead of live buttons — fixes decline→reopen→accept resurrection.
+  const resolution = p?.orderHash ? _resolvedTrades[p.orderHash] : null
+  if (resolution) {
+    const done = document.createElement('div')
+    done.className = 'tc-done'
+    done.textContent = resolution === 'accepted' ? 'Offer accepted.' : 'Offer declined.'
+    card.appendChild(done)
+  }
+
+  if (!isMine && !resolution) {
     const acceptBtn  = document.createElement('button')
     const declineBtn = document.createElement('button')
     acceptBtn.className  = 'tc-accept'
@@ -325,6 +348,7 @@ async function _handleAccept(msg, cardEl) {
     const txResponse = await _trade.fulfillTradeOrder(order, myAddr, signer)
 
     _setCardDone(cardEl, `✅ Trade submitted! Tx: ${txResponse.hash.slice(0,10)}…`)
+    _markTradeResolved(p?.orderHash, 'accepted')
 
     await sendMessage(msg.from, { type: 'trade_accepted', content: `Trade accepted. Tx: ${txResponse.hash}` })
 
@@ -341,6 +365,9 @@ async function _handleAccept(msg, cardEl) {
 
 // Decline trade
 async function _handleDecline(msg, cardEl) {
+  // Mark before the notify send — the user's decision stands even if
+  // the courtesy message to the peer fails.
+  _markTradeResolved(msg.trade_payload?.orderHash, 'declined')
   try {
     await sendMessage(msg.from, { type: 'trade_declined', content: 'Trade declined.' })
     _setCardDone(cardEl, 'Offer declined.')
